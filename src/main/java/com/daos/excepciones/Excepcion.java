@@ -1,0 +1,36 @@
+package com.daos.excepciones;
+
+public class Excepcion extends Exception {
+
+	private static final long serialVersionUID = 1L;
+
+	private String mensaje;
+
+	private int statusCode;
+
+	public Excepcion() {
+		super();
+	}
+
+	public Excepcion(String mensaje, int statusCode) {
+		super(mensaje);
+		this.mensaje = mensaje;
+		this.statusCode = statusCode;
+	}
+
+	public String getMensaje() {
+		return mensaje;
+	}
+
+	public void setMensaje(String mensaje) {
+		this.mensaje = mensaje;
+	}
+
+	public int getStatusCode() {
+		return statusCode;
+	}
+
+	public void setStatusCode(int statusCode) {
+		this.statusCode = statusCode;
+	}
+}
