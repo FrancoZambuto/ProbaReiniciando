@@ -8,76 +8,75 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.Id;
 
-@Entity 
-
-@Table (name = "HISTORIAL_ESTADO_INCIDENTE")
-
+@Entity
+@Table(name = "HISTORIAL_ESTADO_INCIDENTE")
 public class HistorialEstadoIncidente {
-    @Id 
-    @GeneratedValue (strategy = GenerationType.IDENTITY)
-    private long Id;
 
-    @ManyToOne (optional = false)
-    @JoinColumn (name = "incidente:id", nullable = false)
-    private Incidente incidente;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
 
-    @Enumerated (EnumType.STRING)
-    private EstadoIncidente estadoAnterior;
+	@ManyToOne(optional = false)
+	@JoinColumn(name = "incidente_id", nullable = false)
+	private Incidente incidente;
 
-    @Enumerated (EnumType.STRING)
-    @Column (nullable = false)
-    private EstadoIncidente estadoNuevo;
+	@Enumerated(EnumType.STRING)
+	private EstadoIncidente estadoAnterior; // null en el registro inicial
 
-    @Column (nullable = false)
-    private LocalDateTime fechaALta;
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = false)
+	private EstadoIncidente estadoNuevo;
 
-    public HistorialEstadoIncidente(){
-        
-    }
+	@Column(nullable = false)
+	private LocalDateTime fechaHora;
 
-    public long getId() {
-        return Id;
-    }
+	public HistorialEstadoIncidente() {
+	}
 
-    public void setId(long id) {
-        Id = id;
-    }
+	public Long getId() {
+		return id;
+	}
 
-    public Incidente getIncidente() {
-        return incidente;
-    }
+	public void setId(Long id) {
+		this.id = id;
+	}
 
-    public void setIncidente(Incidente incidente) {
-        this.incidente = incidente;
-    }
+	public Incidente getIncidente() {
+		return incidente;
+	}
 
-    public EstadoIncidente getEstadoAnterior() {
-        return estadoAnterior;
-    }
+	public void setIncidente(Incidente incidente) {
+		this.incidente = incidente;
+	}
 
-    public void setEstadoAnterior(EstadoIncidente estadoAnterior) {
-        this.estadoAnterior = estadoAnterior;
-    }
+	public EstadoIncidente getEstadoAnterior() {
+		return estadoAnterior;
+	}
 
-    public EstadoIncidente getEstadoNuevo() {
-        return estadoNuevo;
-    }
+	public void setEstadoAnterior(EstadoIncidente estadoAnterior) {
+		this.estadoAnterior = estadoAnterior;
+	}
 
-    public void setEstadoNuevo(EstadoIncidente estadoNuevo) {
-        this.estadoNuevo = estadoNuevo;
-    }
+	public EstadoIncidente getEstadoNuevo() {
+		return estadoNuevo;
+	}
 
-    public LocalDateTime getFechaALta() {
-        return fechaALta;
-    }
+	public void setEstadoNuevo(EstadoIncidente estadoNuevo) {
+		this.estadoNuevo = estadoNuevo;
+	}
 
-    public void setFechaALta(LocalDateTime fechaALta) {
-        this.fechaALta = fechaALta;
-    }
+	public LocalDateTime getFechaHora() {
+		return fechaHora;
+	}
 
+	public void setFechaHora(LocalDateTime fechaHora) {
+		this.fechaHora = fechaHora;
+	}
 }
+
+
