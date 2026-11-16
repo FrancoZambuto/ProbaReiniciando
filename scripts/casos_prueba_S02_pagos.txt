@@ -1,0 +1,337 @@
+CASOS DE PRUEBA - S02 PAGOS DE FACTURAS
+Responsable: Florencia Nieva
+
+Datos necesarios: Para ejecutar los casos de prueba de S02, se deben generar previamente los datos de prueba definidos en scripts/datos_prueba.sql, en el apartado "Caso para prueba S02".
+
+Se asume que los casos de prueba de S01 fueron ejecutados hasta el apartado 7, por lo que se dispone de las siguientes facturas:
+Factura 1: anulada.
+Factura 2: pendiente.
+Factura 3: vencida.
+Factura 4: pendiente.
+Factura 5: pendiente.
+
+Las fechas utilizadas en los ejemplos corresponden al 15/11/2026. Si las pruebas se realizan en otra fecha, deberán actualizarse los valores correspondientes.
+
+----------------------------------------------------------------------------------------------------
+1) OPERACIÓN PRINCIPAL EXITOSA
+----------------------------------------------------------------------------------------------------
+1a) Registrar un pago
+
+curl --location 'http://localhost:8081/pagos' \
+--header 'Content-Type: application/json' \
+--data '{
+    "facturaId": 2,
+    "fechaPago": "2026-11-15",
+    "medioPago": "TRANSFERENCIA",
+    "importePagado": 45000.00,
+    "interes": 0.00
+}
+'
+
+HTTP esperado: 201 Created
+Resultado esperado:
+{
+    "id": 1,
+    "facturaId": 2,
+    "fechaPago": "2026-11-15",
+    "medioPago": "TRANSFERENCIA",
+    "importePagado": 45000.00,
+    "interes": 0.00
+}
+
+1b) Registrar un pago con intereses
+
+curl --location 'http://localhost:8081/pagos' \
+--header 'Content-Type: application/json' \
+--data '{
+    "facturaId": 4,
+    "fechaPago": "2026-11-15",
+    "medioPago": "EFECTIVO",
+    "importePagado": 360000.00,
+    "interes": 10000.00
+}
+'
+
+HTTP esperado: 201 Created
+Resultado esperado:
+{
+    "id": 2,
+    "facturaId": 4,
+    "fechaPago": "2026-11-15",
+    "medioPago": "EFECTIVO",
+    "importePagado": 360000.00,
+    "interes": 10000.00
+}
+
+----------------------------------------------------------------------------------------------------
+2) CONSULTA POR IDENTIFICADOR
+----------------------------------------------------------------------------------------------------
+curl --location 'http://localhost:8081/pagos/1'
+
+HTTP esperado: 200 OK
+Resultado esperado:
+{
+    "_links": {
+        "self": {
+            "href": "http://localhost:8081/pagos/1"
+        },
+        "factura": {
+            "href": "http://localhost:8081/facturas/2"
+        }
+    },
+    "id": 1,
+    "facturaId": 2,
+    "fechaPago": "2026-11-15",
+    "medioPago": "TRANSFERENCIA",
+    "importePagado": 45000.00,
+    "interes": 0.00
+}
+
+2b) Navegar a la factura mediante el enlace HATEOAS
+curl --location 'http://localhost:8081/facturas/2'
+
+HTTP esperado: 200 OK
+Resultado esperado:
+{
+    "_links": {
+        "self": {
+            "href": "http://localhost:8081/facturas/2"
+        },
+        "contrato": {
+            "href": "http://localhost:8081/contratos/1"
+        }
+    },
+    "concepto": "Reparación de puerta por mal uso",
+    "contratoId": 1,
+    "estado": "PAGADA",
+    "fechaEmision": "2026-11-15",
+    "fechaVencimiento": "2026-12-10",
+    "id": 2,
+    "importe": 45000.00,
+    "periodo": "2026-12",
+    "tipo": "ADICIONAL"
+}
+
+
+----------------------------------------------------------------------------------------------------
+3) LISTADO CON FILTROS
+----------------------------------------------------------------------------------------------------
+curl --location 'http://localhost:8081/pagos?facturaId=2'
+
+HTTP esperado: 200 OK
+Resultado esperado:
+{
+    "_embedded": {
+        "pagoResponseDTOList": [
+            {
+                "_links": {
+                    "self": {
+                        "href": "http://localhost:8081/pagos/1"
+                    },
+                    "factura": {
+                        "href": "http://localhost:8081/facturas/2"
+                    }
+                },
+                "id": 1,
+                "facturaId": 2,
+                "fechaPago": "2026-11-15",
+                "medioPago": "TRANSFERENCIA",
+                "importePagado": 45000.00,
+                "interes": 0.00
+            }
+        ]
+    }
+}
+
+----------------------------------------------------------------------------------------------------
+4) RECHAZO POR DATOS INVÁLIDOS
+----------------------------------------------------------------------------------------------------
+4a) Importe pagado inferior al importe de la factura
+
+curl --location 'http://localhost:8081/pagos' \
+--header 'Content-Type: application/json' \
+--data '{
+    "facturaId": 5,
+    "medioPago": "TRANSFERENCIA",
+    "importePagado": 1000.00,
+    "interes": 0.00
+}'
+
+HTTP esperado: 400 Bad Request
+Resultado esperado: 
+{
+    "message": "El importe pagado debe coincidir con el importe de la factura más los intereses.",
+    "status_code": 400,
+    "uri": "/pagos"
+}
+
+4b) Importe pagado negativo
+
+curl --location 'http://localhost:8081/pagos' \
+--header 'Content-Type: application/json' \
+--data '{
+    "facturaId": 5,
+    "medioPago": "TRANSFERENCIA",
+    "importePagado": -1000.00,
+    "interes": 0.00
+}
+'
+
+HTTP esperado: 400 Bad Request
+Resultado esperado:
+{
+    "message": "El importe pagado debe ser mayor a cero.",
+    "status_code": 400,
+    "uri": "/pagos"
+}
+
+4c) Interés negativo
+
+curl --location 'http://localhost:8081/pagos' \
+--header 'Content-Type: application/json' \
+--data '{
+    "facturaId": 5,
+    "medioPago": "TRANSFERENCIA",
+    "importePagado": 44000.00,
+    "interes": -1000.00
+}
+'
+
+HTTP esperado: 400 Bad Request
+Resultado esperado:
+{
+    "message": "El interés no puede ser negativo.",
+    "status_code": 400,
+    "uri": "/pagos"
+}
+
+4d) Fecha de pago futura
+
+curl --location 'http://localhost:8081/pagos' \
+--header 'Content-Type: application/json' \
+--data '{
+    "facturaId": 5,
+    "fechaPago": "2027-01-01",
+    "medioPago": "TRANSFERENCIA",
+    "importePagado": 45000.00,
+    "interes": 0.00
+}
+'
+
+HTTP esperado: 400 Bad Request
+Resultado esperado: 
+{
+    "message": "La fecha de pago no puede ser futura.",
+    "status_code": 400,
+    "uri": "/pagos"
+}
+
+4e) Fecha de pago anterior a la emisión de la factura
+
+curl --location 'http://localhost:8081/pagos' \
+--header 'Content-Type: application/json' \
+--data '{
+    "facturaId": 5,
+    "fechaPago": "2025-01-01",
+    "medioPago": "TRANSFERENCIA",
+    "importePagado": 280000.00,
+    "interes": 0.00
+}
+'
+
+HTTP esperado: 400 Bad Request
+Resultado esperado: 
+{
+    "message": "La fecha de pago debe ser igual o posterior a la fecha de emisión de la factura.",
+    "status_code": 400,
+    "uri": "/pagos"
+}
+
+----------------------------------------------------------------------------------------------------
+5) RECHAZO POR RECURSO INEXISTENTE
+----------------------------------------------------------------------------------------------------
+5a) Factura inexistente al registrar un pago
+
+curl --location 'http://localhost:8081/pagos' \
+--header 'Content-Type: application/json' \
+--data '{
+    "facturaId": 999,
+    "medioPago": "TRANSFERENCIA",
+    "importePagado": 45000.00,
+    "interes": 0.00
+}'
+
+HTTP esperado: 404 Not Found
+Resultado esperado:
+{
+    "message": "No se encontró la factura.",
+    "status_code": 404,
+    "uri": "/pagos"
+}
+
+5b) Pago inexistente
+
+curl --location 'http://localhost:8081/pagos/999'
+
+HTTP esperado: 404 Not Found
+Resultado esperado: 
+{
+    "message": "No se encontró el pago.",
+    "status_code": 404,
+    "uri": "/pagos/999"
+}
+
+----------------------------------------------------------------------------------------------------
+6) RECHAZO POR CONFLICTO DE NEGOCIO
+----------------------------------------------------------------------------------------------------
+6a) Intentar registrar dos pagos para la misma factura
+
+curl --location 'http://localhost:8081/pagos' \
+--header 'Content-Type: application/json' \
+--data '{
+    "facturaId": 2,
+    "medioPago": "TRANSFERENCIA",
+    "importePagado": 350000.00,
+    "interes": 0.00
+}
+'
+
+HTTP esperado: 409 Conflicta
+Resultado esperado: 
+{
+    "message": "La factura no se encuentra en un estado que permita realizar el pago.",
+    "status_code": 409,
+    "uri": "/pagos"
+}
+
+6b) Intentar pagar una factura anulada
+
+curl --location 'http://localhost:8081/pagos' \
+--header 'Content-Type: application/json' \
+--data '{
+    "facturaId": 1,
+    "medioPago": "TRANSFERENCIA",
+    "importePagado": 350000.00,
+    "interes": 0.00
+}'
+
+HTTP esperado: 409 Conflict
+Resultado esperado:
+{
+    "message": "La factura no se encuentra en un estado que permita realizar el pago.",
+    "status_code": 409,
+    "uri": "/pagos"
+}
+
+6c) Protección de la restricción UNIQUE en base de datos
+
+Intentar insertar directamente un segundo pago asociado a una factura que ya tiene uno registrado.
+
+HTTP esperado: error de integridad de base de datos.
+
+Resultado esperado: la base de datos rechaza la operación por la restricción UNIQUE sobre factura_id, impidiendo que una misma factura tenga más de un pago.
+
+----------------------------------------------------------------------------------------------------
+
+Documentación interactiva (Swagger UI): http://localhost:8081/swagger-ui/index.html
+Especificación OpenAPI (JSON): http://localhost:8081/v3/api-docs
