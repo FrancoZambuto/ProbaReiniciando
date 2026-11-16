@@ -1,5 +1,4 @@
-
-package com.daos.formularios;
+package com.daos.presentacion.pagos;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -8,7 +7,6 @@ import com.daos.entidades.MedioPago;
 
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Positive;
 
 public class PagoForm {

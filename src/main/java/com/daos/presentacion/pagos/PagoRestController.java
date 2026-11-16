@@ -1,6 +1,5 @@
-package com.daos.controladores;
+package com.daos.presentacion.pagos;
 
-import java.net.URI;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -11,9 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpStatus;
 
-import com.daos.dtos.PagoResponseDTO;
 import com.daos.entidades.Pago;
-import com.daos.formularios.PagoForm;
 import com.daos.servicios.PagoService;
 import com.daos.excepciones.Excepcion;
 import com.daos.presentacion.facturas.FacturaRestController;

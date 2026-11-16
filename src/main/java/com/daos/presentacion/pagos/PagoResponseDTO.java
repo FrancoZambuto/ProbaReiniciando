@@ -1,5 +1,4 @@
-
-package com.daos.dtos;
+package com.daos.presentacion.pagos;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

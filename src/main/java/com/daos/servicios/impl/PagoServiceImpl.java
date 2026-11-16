@@ -1,5 +1,4 @@
-
-package com.daos.servicios;
+package com.daos.servicios.impl;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -9,7 +8,6 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 
 import com.daos.accesoDatos.IFacturaRepo;
 import com.daos.accesoDatos.IPagoRepo;
@@ -17,6 +15,7 @@ import com.daos.entidades.EstadoFactura;
 import com.daos.entidades.Factura;
 import com.daos.entidades.Pago;
 import com.daos.excepciones.Excepcion;
+import com.daos.servicios.PagoService;
 
 @Service
 public class PagoServiceImpl implements PagoService {
