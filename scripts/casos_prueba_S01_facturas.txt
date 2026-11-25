@@ -6,24 +6,33 @@ ejecutar los casos en el orden indicado (los ids de factura asumen que la tabla 
 Los ejemplos se redactaron con fecha actual 2026-10-26: las fechas de emisión que se autocompletan
 y la condición de "vencida" dependen del día en que se ejecuten.
 
+AUTENTICACIÓN (JWT): todos los endpoints requieren token, salvo /login y Swagger.
+Primero obtener el token con el usuario de scripts/datos_prueba.sql y reemplazar <TOKEN> en cada caso:
+curl --location --request POST 'http://localhost:8081/login' --header 'Content-Type: application/json' --data-raw '{"username": "admin", "pass": "admin123"}'
+HTTP esperado: 200 OK. Resultado esperado: {"token": "eyJ...", "tipo": "Bearer"}
+
+Sin token o con un token inválido, cualquier endpoint responde 401 Unauthorized:
+curl --location --request GET 'http://localhost:8081/facturas/1'
+Resultado esperado: {"message":"Debe autenticarse con un token válido","status_code":401,"uri":"/facturas/1"}
+
 ----------------------------------------------------------------------------------------------------
 1) OPERACIÓN PRINCIPAL EXITOSA - Emitir la facturación mensual indicando solo contrato y período
 ----------------------------------------------------------------------------------------------------
-curl --location --request POST 'http://localhost:8081/facturas' --header 'Content-Type: application/json' --data-raw '{"contratoId": 1, "periodo": "2026-11"}'
+curl --location --request POST 'http://localhost:8081/facturas' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"contratoId": 1, "periodo": "2026-11"}'
 
 HTTP esperado: 201 Created
 Resultado esperado: factura id=1, tipo MENSUAL, estado PENDIENTE, importe 350000.00 (copiado del contrato),
 fechaEmision = fecha actual, fechaVencimiento 2026-11-10 (día de vencimiento del contrato), enlaces self y contrato.
 
 1b) Emitir una factura adicional (reparación a cargo del inquilino) indicando el importe
-curl --location --request POST 'http://localhost:8081/facturas' --header 'Content-Type: application/json' --data-raw '{"contratoId": 1, "periodo": "2026-11", "concepto": "Reparación de puerta por mal uso", "importe": 45000}'
+curl --location --request POST 'http://localhost:8081/facturas' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"contratoId": 1, "periodo": "2026-11", "concepto": "Reparación de puerta por mal uso", "importe": 45000}'
 
 HTTP esperado: 201 Created
 Resultado esperado: factura id=2, tipo ADICIONAL, importe 45000, estado PENDIENTE. Se admite aunque ya exista
 la facturación mensual del período.
 
 1c) Vencimiento en un mes sin el día de vencimiento del contrato (contrato 2 vence el día 31)
-curl --location --request POST 'http://localhost:8081/facturas' --header 'Content-Type: application/json' --data-raw '{"contratoId": 2, "periodo": "2026-02", "fechaEmision": "2026-02-01"}'
+curl --location --request POST 'http://localhost:8081/facturas' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"contratoId": 2, "periodo": "2026-02", "fechaEmision": "2026-02-01"}'
 
 HTTP esperado: 201 Created
 Resultado esperado: factura id=3, fechaVencimiento 2026-02-28 (último día del mes), estado VENCIDA
@@ -32,7 +41,7 @@ Resultado esperado: factura id=3, fechaVencimiento 2026-02-28 (último día del 
 ----------------------------------------------------------------------------------------------------
 2) CONSULTA POR IDENTIFICADOR
 ----------------------------------------------------------------------------------------------------
-curl --location --request GET 'http://localhost:8081/facturas/1'
+curl --location --request GET 'http://localhost:8081/facturas/1' --header 'Authorization: Bearer <TOKEN>'
 
 HTTP esperado: 200 OK
 Resultado esperado: datos de la factura 1 con los enlaces HATEOAS
@@ -41,20 +50,20 @@ Resultado esperado: datos de la factura 1 con los enlaces HATEOAS
 (el enlace "pago" se agrega solo cuando la factura tiene un pago registrado en S02)
 
 2b) Navegar al contrato mediante el enlace HATEOAS
-curl --location --request GET 'http://localhost:8081/contratos/1'
+curl --location --request GET 'http://localhost:8081/contratos/1' --header 'Authorization: Bearer <TOKEN>'
 
 HTTP esperado: 200 OK
 
 ----------------------------------------------------------------------------------------------------
 3) LISTADO CON FILTROS
 ----------------------------------------------------------------------------------------------------
-curl --location --request GET 'http://localhost:8081/facturas?contratoId=1&tipo=MENSUAL'
+curl --location --request GET 'http://localhost:8081/facturas?contratoId=1&tipo=MENSUAL' --header 'Authorization: Bearer <TOKEN>'
 
 HTTP esperado: 200 OK
 Resultado esperado: solo la factura 1 (facturación mensual del contrato 1).
 
 3b) Filtrar por estado (la condición de vencida se calcula al consultar)
-curl --location --request GET 'http://localhost:8081/facturas?estado=VENCIDA'
+curl --location --request GET 'http://localhost:8081/facturas?estado=VENCIDA' --header 'Authorization: Bearer <TOKEN>'
 
 HTTP esperado: 200 OK
 Resultado esperado: solo la factura 3.
@@ -64,14 +73,14 @@ Filtros disponibles: contratoId, periodo (AAAA-MM), estado (PENDIENTE, VENCIDA, 
 ----------------------------------------------------------------------------------------------------
 4) RECHAZO POR DATOS INVÁLIDOS
 ----------------------------------------------------------------------------------------------------
-curl --location --request POST 'http://localhost:8081/facturas' --header 'Content-Type: application/json' --data-raw '{"contratoId": 1, "periodo": "2026-13"}'
+curl --location --request POST 'http://localhost:8081/facturas' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"contratoId": 1, "periodo": "2026-13"}'
 
 HTTP esperado: 400 Bad Request
 Resultado esperado: {"message":"periodo: El período debe tener el formato AAAA-MM
 ","status_code":400,"uri":"/facturas"}. No se guarda ninguna factura.
 
 4b) Datos obligatorios faltantes e importe negativo
-curl --location --request POST 'http://localhost:8081/facturas' --header 'Content-Type: application/json' --data-raw '{"periodo": "2026-11", "importe": -5}'
+curl --location --request POST 'http://localhost:8081/facturas' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"periodo": "2026-11", "importe": -5}'
 
 HTTP esperado: 400 Bad Request
 Resultado esperado: {"message":"contratoId: El contrato es obligatorio
@@ -81,18 +90,18 @@ importe: El importe debe ser mayor a cero
 ----------------------------------------------------------------------------------------------------
 5) RECHAZO POR RECURSO INEXISTENTE
 ----------------------------------------------------------------------------------------------------
-curl --location --request POST 'http://localhost:8081/facturas' --header 'Content-Type: application/json' --data-raw '{"contratoId": 99, "periodo": "2026-11"}'
+curl --location --request POST 'http://localhost:8081/facturas' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"contratoId": 99, "periodo": "2026-11"}'
 
 HTTP esperado: 404 Not Found
 Resultado esperado: {"message":"No existe el contrato con id=99","status_code":404,"uri":"/facturas"}
 
 5b) Contrato eliminado lógicamente
-curl --location --request POST 'http://localhost:8081/facturas' --header 'Content-Type: application/json' --data-raw '{"contratoId": 4, "periodo": "2026-11"}'
+curl --location --request POST 'http://localhost:8081/facturas' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"contratoId": 4, "periodo": "2026-11"}'
 
 HTTP esperado: 404 Not Found
 
 5c) Factura inexistente
-curl --location --request GET 'http://localhost:8081/facturas/999'
+curl --location --request GET 'http://localhost:8081/facturas/999' --header 'Authorization: Bearer <TOKEN>'
 
 HTTP esperado: 404 Not Found
 
@@ -100,23 +109,23 @@ HTTP esperado: 404 Not Found
 6) RECHAZO POR CONFLICTO DE NEGOCIO
 ----------------------------------------------------------------------------------------------------
 Facturación mensual duplicada para el mismo contrato y período (ejecutar luego del caso 1):
-curl --location --request POST 'http://localhost:8081/facturas' --header 'Content-Type: application/json' --data-raw '{"contratoId": 1, "periodo": "2026-11"}'
+curl --location --request POST 'http://localhost:8081/facturas' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"contratoId": 1, "periodo": "2026-11"}'
 
 HTTP esperado: 409 Conflict
 Resultado esperado: {"message":"Ya existe una factura de facturación mensual no anulada para el contrato 1 y el período 2026-11","status_code":409,"uri":"/facturas"}
 
 6b) Contrato no activo
-curl --location --request POST 'http://localhost:8081/facturas' --header 'Content-Type: application/json' --data-raw '{"contratoId": 3, "periodo": "2025-05"}'
+curl --location --request POST 'http://localhost:8081/facturas' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"contratoId": 3, "periodo": "2025-05"}'
 
 HTTP esperado: 409 Conflict ("El contrato 3 no se encuentra activo (estado: FINALIZADO)")
 
 6c) Período fuera de la vigencia del contrato (vigencia del contrato 1: 2026-03-01 a 2028-02-29)
-curl --location --request POST 'http://localhost:8081/facturas' --header 'Content-Type: application/json' --data-raw '{"contratoId": 1, "periodo": "2028-03"}'
+curl --location --request POST 'http://localhost:8081/facturas' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"contratoId": 1, "periodo": "2028-03"}'
 
 HTTP esperado: 409 Conflict
 
 6d) Fecha de emisión posterior al vencimiento (el vencimiento calculado 2026-09-10 es anterior a la fecha actual)
-curl --location --request POST 'http://localhost:8081/facturas' --header 'Content-Type: application/json' --data-raw '{"contratoId": 1, "periodo": "2026-09"}'
+curl --location --request POST 'http://localhost:8081/facturas' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"contratoId": 1, "periodo": "2026-09"}'
 
 HTTP esperado: 409 Conflict
 
@@ -124,23 +133,23 @@ HTTP esperado: 409 Conflict
 7) ANULACIÓN
 ----------------------------------------------------------------------------------------------------
 Anular una factura pendiente:
-curl --location --request PATCH 'http://localhost:8081/facturas/1/estado' --header 'Content-Type: application/json' --data-raw '{"estado": "ANULADA"}'
+curl --location --request PATCH 'http://localhost:8081/facturas/1/estado' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"estado": "ANULADA"}'
 
 HTTP esperado: 200 OK
 Resultado esperado: factura 1 con estado ANULADA.
 
 7b) Una vez anulada, puede emitirse una nueva facturación mensual para el período (se conserva la anterior)
-curl --location --request POST 'http://localhost:8081/facturas' --header 'Content-Type: application/json' --data-raw '{"contratoId": 1, "periodo": "2026-11"}'
+curl --location --request POST 'http://localhost:8081/facturas' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"contratoId": 1, "periodo": "2026-11"}'
 
 HTTP esperado: 201 Created (nueva factura; la factura 1 sigue existiendo como ANULADA)
 
 7c) Anular una factura ya anulada
-curl --location --request PATCH 'http://localhost:8081/facturas/1/estado' --header 'Content-Type: application/json' --data-raw '{"estado": "ANULADA"}'
+curl --location --request PATCH 'http://localhost:8081/facturas/1/estado' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"estado": "ANULADA"}'
 
 HTTP esperado: 409 Conflict ("Solo pueden anularse facturas pendientes o vencidas...")
 
 7d) Intentar marcar una factura como pagada (solo se permite registrando un pago en S02)
-curl --location --request PATCH 'http://localhost:8081/facturas/2/estado' --header 'Content-Type: application/json' --data-raw '{"estado": "PAGADA"}'
+curl --location --request PATCH 'http://localhost:8081/facturas/2/estado' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"estado": "PAGADA"}'
 
 HTTP esperado: 409 Conflict
 
