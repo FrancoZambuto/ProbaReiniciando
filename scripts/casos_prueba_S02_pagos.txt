@@ -13,11 +13,25 @@ Factura 5: pendiente.
 Las fechas utilizadas en los ejemplos corresponden al 15/11/2026. Si las pruebas se realizan en otra fecha, deberán actualizarse los valores correspondientes.
 
 ----------------------------------------------------------------------------------------------------
+0) OBTENER EL TOKEN (JWT)
+----------------------------------------------------------------------------------------------------
+Todos los endpoints requieren token, salvo /login y Swagger. Reemplazar <TOKEN> en cada caso por el valor obtenido:
+
+curl --location --request POST 'http://localhost:8081/login' --header 'Content-Type: application/json' --data-raw '{"username": "admin", "pass": "admin123"}'
+
+HTTP esperado: 200 OK
+Resultado esperado: {"token": "eyJ...", "tipo": "Bearer"}
+
+Sin token o con un token inválido, cualquier endpoint responde 401 Unauthorized:
+curl --location 'http://localhost:8081/pagos/1'
+Resultado esperado: {"message":"Debe autenticarse con un token válido","status_code":401,"uri":"/pagos/1"}
+
+----------------------------------------------------------------------------------------------------
 1) OPERACIÓN PRINCIPAL EXITOSA
 ----------------------------------------------------------------------------------------------------
 1a) Registrar un pago
 
-curl --location 'http://localhost:8081/pagos' \
+curl --location 'http://localhost:8081/pagos' --header 'Authorization: Bearer <TOKEN>' \
 --header 'Content-Type: application/json' \
 --data '{
     "facturaId": 2,
@@ -41,7 +55,7 @@ Resultado esperado:
 
 1b) Registrar un pago con intereses
 
-curl --location 'http://localhost:8081/pagos' \
+curl --location 'http://localhost:8081/pagos' --header 'Authorization: Bearer <TOKEN>' \
 --header 'Content-Type: application/json' \
 --data '{
     "facturaId": 4,
@@ -66,7 +80,7 @@ Resultado esperado:
 ----------------------------------------------------------------------------------------------------
 2) CONSULTA POR IDENTIFICADOR
 ----------------------------------------------------------------------------------------------------
-curl --location 'http://localhost:8081/pagos/1'
+curl --location 'http://localhost:8081/pagos/1' --header 'Authorization: Bearer <TOKEN>'
 
 HTTP esperado: 200 OK
 Resultado esperado:
@@ -88,7 +102,7 @@ Resultado esperado:
 }
 
 2b) Navegar a la factura mediante el enlace HATEOAS
-curl --location 'http://localhost:8081/facturas/2'
+curl --location 'http://localhost:8081/facturas/2' --header 'Authorization: Bearer <TOKEN>'
 
 HTTP esperado: 200 OK
 Resultado esperado:
@@ -116,7 +130,7 @@ Resultado esperado:
 ----------------------------------------------------------------------------------------------------
 3) LISTADO CON FILTROS
 ----------------------------------------------------------------------------------------------------
-curl --location 'http://localhost:8081/pagos?facturaId=2'
+curl --location 'http://localhost:8081/pagos?facturaId=2' --header 'Authorization: Bearer <TOKEN>'
 
 HTTP esperado: 200 OK
 Resultado esperado:
@@ -148,7 +162,7 @@ Resultado esperado:
 ----------------------------------------------------------------------------------------------------
 4a) Importe pagado inferior al importe de la factura
 
-curl --location 'http://localhost:8081/pagos' \
+curl --location 'http://localhost:8081/pagos' --header 'Authorization: Bearer <TOKEN>' \
 --header 'Content-Type: application/json' \
 --data '{
     "facturaId": 5,
@@ -167,7 +181,7 @@ Resultado esperado:
 
 4b) Importe pagado negativo
 
-curl --location 'http://localhost:8081/pagos' \
+curl --location 'http://localhost:8081/pagos' --header 'Authorization: Bearer <TOKEN>' \
 --header 'Content-Type: application/json' \
 --data '{
     "facturaId": 5,
@@ -187,7 +201,7 @@ Resultado esperado:
 
 4c) Interés negativo
 
-curl --location 'http://localhost:8081/pagos' \
+curl --location 'http://localhost:8081/pagos' --header 'Authorization: Bearer <TOKEN>' \
 --header 'Content-Type: application/json' \
 --data '{
     "facturaId": 5,
@@ -207,7 +221,7 @@ Resultado esperado:
 
 4d) Fecha de pago futura
 
-curl --location 'http://localhost:8081/pagos' \
+curl --location 'http://localhost:8081/pagos' --header 'Authorization: Bearer <TOKEN>' \
 --header 'Content-Type: application/json' \
 --data '{
     "facturaId": 5,
@@ -228,7 +242,7 @@ Resultado esperado:
 
 4e) Fecha de pago anterior a la emisión de la factura
 
-curl --location 'http://localhost:8081/pagos' \
+curl --location 'http://localhost:8081/pagos' --header 'Authorization: Bearer <TOKEN>' \
 --header 'Content-Type: application/json' \
 --data '{
     "facturaId": 5,
@@ -252,7 +266,7 @@ Resultado esperado:
 ----------------------------------------------------------------------------------------------------
 5a) Factura inexistente al registrar un pago
 
-curl --location 'http://localhost:8081/pagos' \
+curl --location 'http://localhost:8081/pagos' --header 'Authorization: Bearer <TOKEN>' \
 --header 'Content-Type: application/json' \
 --data '{
     "facturaId": 999,
@@ -271,7 +285,7 @@ Resultado esperado:
 
 5b) Pago inexistente
 
-curl --location 'http://localhost:8081/pagos/999'
+curl --location 'http://localhost:8081/pagos/999' --header 'Authorization: Bearer <TOKEN>'
 
 HTTP esperado: 404 Not Found
 Resultado esperado: 
@@ -286,7 +300,7 @@ Resultado esperado:
 ----------------------------------------------------------------------------------------------------
 6a) Intentar registrar dos pagos para la misma factura
 
-curl --location 'http://localhost:8081/pagos' \
+curl --location 'http://localhost:8081/pagos' --header 'Authorization: Bearer <TOKEN>' \
 --header 'Content-Type: application/json' \
 --data '{
     "facturaId": 2,
@@ -296,7 +310,7 @@ curl --location 'http://localhost:8081/pagos' \
 }
 '
 
-HTTP esperado: 409 Conflicta
+HTTP esperado: 409 Conflict
 Resultado esperado: 
 {
     "message": "La factura no se encuentra en un estado que permita realizar el pago.",
@@ -306,7 +320,7 @@ Resultado esperado:
 
 6b) Intentar pagar una factura anulada
 
-curl --location 'http://localhost:8081/pagos' \
+curl --location 'http://localhost:8081/pagos' --header 'Authorization: Bearer <TOKEN>' \
 --header 'Content-Type: application/json' \
 --data '{
     "facturaId": 1,
@@ -325,9 +339,12 @@ Resultado esperado:
 
 6c) Protección de la restricción UNIQUE en base de datos
 
-Intentar insertar directamente un segundo pago asociado a una factura que ya tiene uno registrado.
+Intentar insertar directamente un segundo pago asociado a una factura que ya tiene uno registrado
+(la factura 2 ya tiene el pago del caso 1a). Ejecutar en MySQL sobre el esquema 02-garcesnievareynosozambuto:
 
-HTTP esperado: error de integridad de base de datos.
+INSERT INTO pago (factura_id, fecha_pago, medio_pago, importe_pagado, interes) VALUES (2, '2026-11-15', 'EFECTIVO', 45000.00, 0.00);
+
+Resultado esperado en MySQL: Error Code: 1062. Duplicate entry '2' for key 'pago.UKknnq77eqc7tg3793mbed1pcx4'
 
 Resultado esperado: la base de datos rechaza la operación por la restricción UNIQUE sobre factura_id, impidiendo que una misma factura tenga más de un pago.
 

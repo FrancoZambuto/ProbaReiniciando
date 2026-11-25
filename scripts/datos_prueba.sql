@@ -23,4 +23,4 @@ INSERT INTO usuario (id, username, password, rol) VALUES
 --IMPORTANTE: Ejecutar despues de las pruebas para el caso S01
 --Caso para prueba S02
 INSERT INTO factura (concepto, estado, fecha_emision, fecha_vencimiento, importe, periodo, tipo, contrato_id) VALUES
-(NULL, 'PENDIENTE', '2026-11-15', '2026-12-10', 10000, 2026-12, 'ADICIONAL', 3)
+(NULL, 'PENDIENTE', '2026-11-15', '2026-12-10', 10000, '2026-12', 'ADICIONAL', 1);
