@@ -121,6 +121,9 @@ public Pago registrar(Pago pago, Long facturaId) throws Excepcion {
     @Override
     @Transactional(readOnly = true)
     public List<Pago> filtrar(Long facturaId) throws Excepcion {
+        if (facturaId == null) {
+            return pagoRepo.findAll();
+        }
         return pagoRepo.findByFacturaId(facturaId);
     }
 }
