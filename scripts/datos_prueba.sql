@@ -17,6 +17,9 @@ INSERT INTO contrato (id, propiedad_id, propietario_id, inquilino_id, fecha_inic
 (3, 3, 2, 3, '2025-01-01', NULL, 12, 200000.00, 5, 'Alquiler local Rivadavia 3100 (finalizado)', 'FINALIZADO', 0),
 (4, 4, 2, 4, '2026-06-01', NULL, 12, 150000.00, 10, 'Contrato dado de baja', 'ACTIVO', 1);
 
+INSERT INTO usuario (id, username, password, rol) VALUES
+(1, 'admin', 'admin123', 'ADMIN');
+
 --IMPORTANTE: Ejecutar despues de las pruebas para el caso S01
 --Caso para prueba S02
 INSERT INTO factura (concepto, estado, fecha_emision, fecha_vencimiento, importe, periodo, tipo, contrato_id) VALUES
