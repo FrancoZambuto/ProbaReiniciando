@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import jakarta.persistence.*;
-import jakarta.persistence.Id;
 
 @Entity
 @Table(name = "PAGO")
