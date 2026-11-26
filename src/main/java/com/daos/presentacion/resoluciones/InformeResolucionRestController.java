@@ -21,7 +21,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
 @RestController
-@Tag(name = "Informes de resolución")
+@Tag(name = "Informes de resolución", description = "S04 - Permite guardar la resolucion de un incidente en proceso y el trabajo realizado")
 public class InformeResolucionRestController {
 
     private final InformeResolucionService service;
@@ -35,14 +35,12 @@ public class InformeResolucionRestController {
     @ApiResponse(responseCode = "400", description = "Datos inválidos")
     @ApiResponse(responseCode = "404", description = "Incidente inexistente")
     @ApiResponse(responseCode = "409", description = "El incidente no está en proceso")
-    @PostMapping("/incidentes/{id}/resolucion")
+    @PostMapping("/informes-resolucion")
     public ResponseEntity<InformeResolucionResponseDTO> resolver(
-            @PathVariable("id") Long incidenteId,
             @Valid @RequestBody InformeResolucionForm form) throws Excepcion {
-
-        InformeResolucion pojo = service.resolver(incidenteId, form.toPojo());
-        InformeResolucionResponseDTO dto = buildResponse(pojo);
-
+        InformeResolucion informe = service.resolver(
+                form.getIncidenteId(), form.toPojo());
+        InformeResolucionResponseDTO dto = buildResponse(informe);
         return ResponseEntity.created(dto.getRequiredLink("self").toUri())
                 .body(dto);
     }
@@ -51,7 +49,6 @@ public class InformeResolucionRestController {
     @GetMapping("/informes-resolucion/{id}")
     public ResponseEntity<InformeResolucionResponseDTO> getById(
             @PathVariable("id") Long id) throws Excepcion {
-
         InformeResolucion pojo = service.getById(id);
         return ResponseEntity.ok(buildResponse(pojo));
     }

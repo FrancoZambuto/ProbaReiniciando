@@ -67,4 +67,15 @@ public class InformeResolucionForm {
         informe.setObservaciones(observaciones);
         return informe;
     }
+    
+    @NotNull(message = "El incidente es obligatorio")
+    private Long incidenteId;
+
+    public Long getIncidenteId() {
+        return incidenteId;
+    }
+
+    public void setIncidenteId(Long incidenteId) {
+        this.incidenteId = incidenteId;
+    }
 }
