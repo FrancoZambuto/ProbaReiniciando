@@ -103,7 +103,7 @@ public class PagoRestController {
 })
     @GetMapping
     public ResponseEntity<CollectionModel<EntityModel<PagoResponseDTO>>> filtrar(
-        @RequestParam Long facturaId) throws Excepcion {
+        @RequestParam(name = "facturaId", required = false) Long facturaId) throws Excepcion {
 
         List<Pago> pagos = pagoService.filtrar(facturaId);
         List<EntityModel<PagoResponseDTO>> recursos = new ArrayList<>();

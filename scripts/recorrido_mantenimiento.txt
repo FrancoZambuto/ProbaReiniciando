@@ -1,0 +1,125 @@
+RECORRIDO INTEGRADO DE MANTENIMIENTO (S03 Incidentes + S04 Informes de resolución)
+
+Objetivo: registrar un incidente, iniciar su atención, resolverlo con un informe, reabrirlo, volver a iniciar su
+atención y resolverlo nuevamente, comprobando que se conservan ambos informes y el historial completo, y que las
+operaciones rechazadas no dejan registros parciales.
+
+Datos necesarios: ejecutar scripts/datos_prueba.sql (contrato 1 activo y vigente del 2026-03-01 al 2028-02-29 y el
+usuario admin). Los ids asumen que las tablas incidente, historial_estado_incidente e informe_resolucion están vacías.
+Las fechas y horas de las respuestas corresponden al momento de la ejecución.
+
+----------------------------------------------------------------------------------------------------
+0) OBTENER EL TOKEN
+----------------------------------------------------------------------------------------------------
+curl --location --request POST 'http://localhost:8081/login' --header 'Content-Type: application/json' --data-raw '{"username": "admin", "pass": "admin123"}'
+
+HTTP esperado: 200 OK
+Resultado esperado: {"token": "eyJ...", "tipo": "Bearer"}. Reemplazar <TOKEN> en los pasos siguientes por ese valor.
+
+----------------------------------------------------------------------------------------------------
+1) REGISTRAR EL INCIDENTE
+----------------------------------------------------------------------------------------------------
+curl --location --request POST 'http://localhost:8081/incidentes' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"contratoId": 1, "titulo": "Pérdida de agua en el baño", "descripcion": "Gotea la canilla del lavatorio", "categoria": "PLOMERIA", "prioridad": "MEDIA"}'
+
+HTTP esperado: 201 Created
+Resultado esperado: incidente id=1, estado ABIERTO, enlaces self, contrato e informes
+("informes": http://localhost:8081/informes-resolucion?incidenteId=1).
+
+----------------------------------------------------------------------------------------------------
+2) RECHAZO: RESOLVER UN INCIDENTE QUE NO ESTÁ EN PROCESO
+----------------------------------------------------------------------------------------------------
+curl --location --request POST 'http://localhost:8081/incidentes/1/resolucion' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"descripcionTrabajo": "Intento de resolución", "responsable": "Juan Pérez (plomero)", "costo": 0}'
+
+HTTP esperado: 409 Conflict
+Resultado esperado: {"message":"El incidente debe estar EN_PROCESO","status_code":409,"uri":"/incidentes/1/resolucion"}
+
+2b) Comprobar que el rechazo no dejó registros parciales
+curl --location --request GET 'http://localhost:8081/informes-resolucion?incidenteId=1' --header 'Authorization: Bearer <TOKEN>'
+
+HTTP esperado: 200 OK
+Resultado esperado: [] (no se generó ningún informe; el incidente sigue ABIERTO y su historial tiene una sola entrada).
+
+----------------------------------------------------------------------------------------------------
+3) INICIAR LA ATENCIÓN
+----------------------------------------------------------------------------------------------------
+curl --location --request PATCH 'http://localhost:8081/incidentes/1/estado' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"estado": "EN_PROCESO"}'
+
+HTTP esperado: 200 OK
+Resultado esperado: incidente 1 con estado EN_PROCESO.
+
+----------------------------------------------------------------------------------------------------
+4) RESOLVER CON UN INFORME
+----------------------------------------------------------------------------------------------------
+curl --location --request POST 'http://localhost:8081/incidentes/1/resolucion' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"descripcionTrabajo": "Cambio del cuerito de la canilla", "responsable": "Juan Pérez (plomero)", "costo": 15000, "observaciones": "Sin daños adicionales"}'
+
+HTTP esperado: 201 Created
+Resultado esperado: informe id=1 del incidente 1, con enlaces self e incidente. El incidente pasa a RESUELTO.
+
+4b) Rechazo: intentar un segundo informe mientras el incidente permanece resuelto
+curl --location --request POST 'http://localhost:8081/incidentes/1/resolucion' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"descripcionTrabajo": "Intento de resolución", "responsable": "Juan Pérez (plomero)", "costo": 0}'
+
+HTTP esperado: 409 Conflict
+Resultado esperado: {"message":"El incidente debe estar EN_PROCESO","status_code":409,"uri":"/incidentes/1/resolucion"}
+
+4c) Rechazo: la resolución no puede hacerse cambiando el estado directamente
+curl --location --request PATCH 'http://localhost:8081/incidentes/1/estado' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"estado": "RESUELTO"}'
+
+HTTP esperado: 409 Conflict
+Resultado esperado: {"message":"La resolución de un incidente se realiza mediante un informe de resolución","status_code":409,"uri":"/incidentes/1/estado"}
+
+----------------------------------------------------------------------------------------------------
+5) REABRIR EL INCIDENTE
+----------------------------------------------------------------------------------------------------
+curl --location --request PATCH 'http://localhost:8081/incidentes/1/estado' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"estado": "REABIERTO"}'
+
+HTTP esperado: 200 OK
+Resultado esperado: incidente 1 con estado REABIERTO. El informe 1 se conserva.
+
+----------------------------------------------------------------------------------------------------
+6) VOLVER A INICIAR LA ATENCIÓN
+----------------------------------------------------------------------------------------------------
+curl --location --request PATCH 'http://localhost:8081/incidentes/1/estado' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"estado": "EN_PROCESO"}'
+
+HTTP esperado: 200 OK
+Resultado esperado: incidente 1 con estado EN_PROCESO.
+
+----------------------------------------------------------------------------------------------------
+7) RESOLVER NUEVAMENTE
+----------------------------------------------------------------------------------------------------
+curl --location --request POST 'http://localhost:8081/incidentes/1/resolucion' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"descripcionTrabajo": "Reemplazo completo de la canilla", "responsable": "Juan Pérez (plomero)", "costo": 42000, "observaciones": "Se cambió la grifería"}'
+
+HTTP esperado: 201 Created
+Resultado esperado: informe id=2 del incidente 1. El incidente vuelve a RESUELTO.
+
+----------------------------------------------------------------------------------------------------
+8) COMPROBAR LA CONSERVACIÓN DE AMBOS INFORMES (enlace "informes" del incidente)
+----------------------------------------------------------------------------------------------------
+curl --location --request GET 'http://localhost:8081/informes-resolucion?incidenteId=1' --header 'Authorization: Bearer <TOKEN>'
+
+HTTP esperado: 200 OK
+Resultado esperado: dos informes del incidente 1:
+  id=1 "Cambio del cuerito de la canilla", costo 15000.00
+  id=2 "Reemplazo completo de la canilla", costo 42000.00
+
+----------------------------------------------------------------------------------------------------
+9) COMPROBAR EL HISTORIAL COMPLETO
+----------------------------------------------------------------------------------------------------
+curl --location --request GET 'http://localhost:8081/incidentes/1/historial' --header 'Authorization: Bearer <TOKEN>'
+
+HTTP esperado: 200 OK
+Resultado esperado: seis transiciones ordenadas cronológicamente:
+  1. null       -> ABIERTO
+  2. ABIERTO    -> EN_PROCESO
+  3. EN_PROCESO -> RESUELTO   (misma fecha y hora que el informe 1)
+  4. RESUELTO   -> REABIERTO
+  5. REABIERTO  -> EN_PROCESO
+  6. EN_PROCESO -> RESUELTO   (misma fecha y hora que el informe 2)
+Los intentos rechazados de los pasos 2, 4b y 4c no agregaron entradas al historial ni informes.
+
+----------------------------------------------------------------------------------------------------
+10) ESTADO FINAL DEL INCIDENTE
+----------------------------------------------------------------------------------------------------
+curl --location --request GET 'http://localhost:8081/incidentes/1' --header 'Authorization: Bearer <TOKEN>'
+
+HTTP esperado: 200 OK
+Resultado esperado: incidente 1 con estado RESUELTO.

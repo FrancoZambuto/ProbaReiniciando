@@ -22,11 +22,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.daos.entidades.EstadoFactura;
 import com.daos.entidades.Factura;
+import com.daos.entidades.Pago;
 import com.daos.entidades.TipoFactura;
 import com.daos.excepciones.Excepcion;
 import com.daos.presentacion.contratos.ContratoRestController;
 import com.daos.presentacion.errores.ErrorInfo;
+import com.daos.presentacion.pagos.PagoRestController;
 import com.daos.servicios.FacturaService;
+import com.daos.servicios.PagoService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -43,6 +46,9 @@ public class FacturaRestController {
 
 	@Autowired
 	private FacturaService service;
+
+	@Autowired
+	private PagoService pagoService;
 
 	@Operation(summary = "Emite una factura. Indicando solo contrato y período se genera la facturación mensual; indicando el importe se genera una factura adicional")
 	@ApiResponses(value = {
@@ -128,6 +134,15 @@ public class FacturaRestController {
 				.withRel("contrato");
 		dto.add(selfLink);
 		dto.add(contratoLink);
+
+		List<Pago> pagos = pagoService.filtrar(pojo.getId());
+		if (!pagos.isEmpty()) {
+			Link pagoLink = WebMvcLinkBuilder.linkTo(
+					WebMvcLinkBuilder.methodOn(PagoRestController.class)
+							.getById(pagos.get(0).getId()))
+					.withRel("pago");
+			dto.add(pagoLink);
+		}
 
 		return dto;
 	}
