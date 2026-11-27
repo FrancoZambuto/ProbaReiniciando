@@ -71,7 +71,7 @@ public class IncidenteServiceImpl implements IncidenteService {
 	}
 
 	@Override
-	@Transactional(rollbackFor = Excepcion.class)
+	@Transactional(rollbackFor = Excepcion.class)  //modificado por ariel
 	public Incidente cambiarEstado(Long id, EstadoIncidente nuevoEstado) throws Excepcion {
 		Incidente incidente = getById(id);
 
@@ -84,7 +84,7 @@ public class IncidenteServiceImpl implements IncidenteService {
 		if (!transicionPermitida(actual, nuevoEstado))
 			throw new Excepcion("Transición de estado no permitida: de " + actual + " a " + nuevoEstado, 409);
 
-		return aplicarCambio(incidente, nuevoEstado, LocalDateTime.now());
+		return aplicarCambio(incidente, nuevoEstado, LocalDateTime.now()).getIncidente();
 	}
 
 		@Override
@@ -92,9 +92,11 @@ public class IncidenteServiceImpl implements IncidenteService {
 	public HistorialEstadoIncidente marcarResuelto(Long id, LocalDateTime fechaHora) throws Excepcion {
 		Incidente incidente = getById(id);
 
-		if (incidente.getEstado() != EstadoIncidente.EN_PROCESO)
-			throw new Excepcion("Solo pueden resolverse incidentes en proceso. El incidente " + id + " se encuentra "
-					+ incidente.getEstado(), 409);
+	    if (incidente.getEstado() != EstadoIncidente.EN_PROCESO) {
+	        throw new Excepcion(
+	                "Solo pueden resolverse incidentes en proceso. El incidente "
+	                        + id + " se encuentra " + incidente.getEstado(),409);
+	    }
 
 		incidente.setEstado(EstadoIncidente.RESUELTO);
 		Incidente guardado = repo.save(incidente);
@@ -107,12 +109,11 @@ public class IncidenteServiceImpl implements IncidenteService {
 		return historialRepo.buscarPorIncidente(id);
 	}
 
-	private Incidente aplicarCambio(Incidente incidente, EstadoIncidente nuevoEstado, LocalDateTime fechaHora) {
-		EstadoIncidente anterior = incidente.getEstado();
-		incidente.setEstado(nuevoEstado);
-		Incidente guardado = repo.save(incidente);
-		registrarHistorial(guardado, anterior, nuevoEstado, fechaHora);
-		return guardado;
+	private HistorialEstadoIncidente aplicarCambio( Incidente incidente, EstadoIncidente nuevoEstado, LocalDateTime fechaHora) {
+	    EstadoIncidente anterior = incidente.getEstado();
+	    incidente.setEstado(nuevoEstado);
+	    Incidente guardado = repo.save(incidente);
+	    return registrarHistorial(guardado, anterior, nuevoEstado, fechaHora);
 	}
       	private HistorialEstadoIncidente registrarHistorial(Incidente incidente, EstadoIncidente anterior,
 			EstadoIncidente nuevo, LocalDateTime fechaHora) {
