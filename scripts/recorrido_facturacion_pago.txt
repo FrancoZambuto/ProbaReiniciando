@@ -1,0 +1,101 @@
+# RECORRIDO INTEGRADO DE FACTURACIÓN Y PAGO
+
+## Objetivo
+
+Emitir una factura, registrar su pago, consultar la factura pagada, acceder al pago mediante HATEOAS y comprobar que un segundo pago sea rechazado.
+
+## Datos necesarios
+
+Ejecutar previamente `scripts/datos_prueba.sql` sobre la base de datos vacía, incluyendo los contratos y el usuario admin.
+
+Los IDs de factura y pago asumen que las tablas correspondientes están vacías al comenzar.
+
+Las fechas utilizadas corresponden a los casos de prueba proporcionados. Si se ejecutan en otra fecha, deberán actualizarse los valores correspondientes.
+
+----------------------------------------------------------------------------------------------------
+0) OBTENER EL TOKEN
+----------------------------------------------------------------------------------------------------
+
+curl --location --request POST 'http://localhost:8081/login' --header 'Content-Type: application/json' --data-raw '{"username": "admin", "pass": "admin123"}'
+
+HTTP esperado: 200 OK
+Resultado esperado: {"token": "eyJ...", "tipo": "Bearer"}. Reemplazar `<TOKEN>` en todos los pasos siguientes por ese valor.
+
+----------------------------------------------------------------------------------------------------
+1) EMITIR LA FACTURA MENSUAL
+----------------------------------------------------------------------------------------------------
+
+curl --location --request POST 'http://localhost:8081/facturas' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"contratoId": 1, "periodo": "2026-11", "concepto": "Reparación de puerta por mal uso", "importe": 45000}'
+
+HTTP esperado: 201 Created
+Resultado esperado: factura id=1, tipo ADICIONAL, importe 45000, estado PENDIENTE. Se admite aunque ya exista
+la facturación mensual del período.
+
+----------------------------------------------------------------------------------------------------
+2) REGISTRAR EL PAGO 
+----------------------------------------------------------------------------------------------------
+
+curl --location --request POST 'http://localhost:8081/pagos' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"facturaId": 1, "fechaPago": "2026-11-15", "medioPago": "TRANSFERENCIA", "importePagado": 45000.00, "interes": 0.00}'
+
+HTTP esperado: 201 Created
+Resultado esperado: pago id=1, facturaId=1, fechaPago 2026-11-15, medioPago TRANSFERENCIA, importePagado 45000.00 e interes 0.00. La factura 1 pasa a estado PAGADA.
+
+----------------------------------------------------------------------------------------------------
+3) CONSULTAR LA FACTURA PAGADA
+----------------------------------------------------------------------------------------------------
+
+curl --location --request GET 'http://localhost:8081/facturas/1' --header 'Authorization: Bearer <TOKEN>'
+
+HTTP esperado: 200 OK
+Resultado esperado: datos de la factura 1 con los enlaces HATEOAS
+  "self":     http://localhost:8081/facturas/1
+  "contrato": http://localhost:8081/contratos/1
+  "pago":     http://localhost:8081/pagos/1
+
+----------------------------------------------------------------------------------------------------
+4) ACCEDER AL PAGO MEDIANTE HATEOAS
+----------------------------------------------------------------------------------------------------
+
+curl --location --request GET 'http://localhost:8081/pagos/1' --header 'Authorization: Bearer <TOKEN>'
+
+HTTP esperado: 200 OK
+Resultado esperado: datos del pago con los enlaces HATEOAS
+{
+    "_links": {
+        "self": {
+            "href": "http://localhost:8081/pagos/1"
+        },
+        "factura": {
+            "href": "http://localhost:8081/facturas/1"
+        }
+    },
+    "id": 1,
+    "facturaId": 1,
+    "fechaPago": "2026-11-15",
+    "medioPago": "TRANSFERENCIA",
+    "importePagado": 45000.00,
+    "interes": 0.00
+}
+
+----------------------------------------------------------------------------------------------------
+5) COMPROBAR QUE UN SEGUNDO PAGO SEA RECHAZADO
+----------------------------------------------------------------------------------------------------
+
+curl --location 'http://localhost:8081/pagos' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Bearer <TOKEN>' \
+--data '{
+    "facturaId": 1,
+    "fechaPago": "2025-01-01",
+    "medioPago": "TRANSFERENCIA",
+    "importePagado": 280000.00,
+    "interes": 0.00
+}'
+
+HTTP esperado: 409 Conflic
+Resultado esperado: No permite realizar el pago.
+{
+    "message": "La factura no se encuentra en un estado que permita realizar el pago.",
+    "status_code": 409,
+    "uri": "/pagos"
+}
