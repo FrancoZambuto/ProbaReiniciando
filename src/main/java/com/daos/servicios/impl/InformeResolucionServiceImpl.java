@@ -13,9 +13,8 @@ import com.daos.excepciones.Excepcion;
 import com.daos.servicios.IncidenteService;
 import com.daos.servicios.InformeResolucionService;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.LockModeType;
 import jakarta.persistence.PersistenceContext;
-
+import com.daos.entidades.HistorialEstadoIncidente;
 @Service
 public class InformeResolucionServiceImpl implements InformeResolucionService {
 
@@ -30,10 +29,21 @@ public class InformeResolucionServiceImpl implements InformeResolucionService {
 	public InformeResolucion resolver(Long incidenteId, InformeResolucion informe) throws Excepcion {
 
 		// 1. Buscar el incidente
-		Incidente incidente = entityManager.find(Incidente.class, incidenteId, LockModeType.PESSIMISTIC_WRITE);
-		if (incidente == null) {
-			throw new Excepcion("No existe el incidente con id=" + incidenteId, 404);
+		boolean existe = !entityManager.createNativeQuery("""
+		        SELECT id
+		        FROM incidente
+		        WHERE id = :id
+		        FOR UPDATE
+		        """)
+		        .setParameter("id", incidenteId)
+		        .getResultList()
+		        .isEmpty();
+
+		if (!existe) {
+		    throw new Excepcion("No existe el incidente con id=" + incidenteId, 404);
 		}
+
+		Incidente incidente = entityManager.find(Incidente.class, incidenteId);
 
 		// 2. Verificar su estado
 		if (incidente.getEstado() != EstadoIncidente.EN_PROCESO) {
@@ -66,7 +76,8 @@ public class InformeResolucionServiceImpl implements InformeResolucionService {
 	    informe.setFechaHoraResolucion(fechaHora);
 
 	    // 5. Cambiar estado y registrar historial
-	    incidenteService.marcarResuelto(incidenteId, fechaHora);
+	    HistorialEstadoIncidente transicion =  incidenteService.marcarResuelto(incidenteId, fechaHora);
+        informe.setTransicionResolucion(transicion);
 
 	    // 6. Guardar el informe
 	    return repo.save(informe);

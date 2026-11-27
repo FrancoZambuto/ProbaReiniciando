@@ -21,7 +21,7 @@ public interface IncidenteService {
 
 	Incidente cambiarEstado(Long id, EstadoIncidente nuevoEstado) throws Excepcion;
 
-	Incidente marcarResuelto(Long id, LocalDateTime fechaHora) throws Excepcion;
+	HistorialEstadoIncidente marcarResuelto(Long id, LocalDateTime fechaHora) throws Excepcion;  //modifico ariel     Incidente marcarResuelto(Long id, LocalDateTime fechaHora) throws Excepcion;
 
 	List<HistorialEstadoIncidente> getHistorial(Long id) throws Excepcion;
 }
