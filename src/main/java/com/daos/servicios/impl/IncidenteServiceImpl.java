@@ -87,16 +87,18 @@ public class IncidenteServiceImpl implements IncidenteService {
 		return aplicarCambio(incidente, nuevoEstado, LocalDateTime.now());
 	}
 
-	@Override
+		@Override
 	@Transactional(rollbackFor = Excepcion.class)
-	public Incidente marcarResuelto(Long id, LocalDateTime fechaHora) throws Excepcion {
+	public HistorialEstadoIncidente marcarResuelto(Long id, LocalDateTime fechaHora) throws Excepcion {
 		Incidente incidente = getById(id);
 
 		if (incidente.getEstado() != EstadoIncidente.EN_PROCESO)
 			throw new Excepcion("Solo pueden resolverse incidentes en proceso. El incidente " + id + " se encuentra "
 					+ incidente.getEstado(), 409);
 
-		return aplicarCambio(incidente, EstadoIncidente.RESUELTO, fechaHora);
+		incidente.setEstado(EstadoIncidente.RESUELTO);
+		Incidente guardado = repo.save(incidente);
+		return registrarHistorial(guardado, EstadoIncidente.EN_PROCESO, EstadoIncidente.RESUELTO, fechaHora);
 	}
 
 	@Override
@@ -112,16 +114,16 @@ public class IncidenteServiceImpl implements IncidenteService {
 		registrarHistorial(guardado, anterior, nuevoEstado, fechaHora);
 		return guardado;
 	}
-
-	private void registrarHistorial(Incidente incidente, EstadoIncidente anterior, EstadoIncidente nuevo,
-			LocalDateTime fechaHora) {
+      	private HistorialEstadoIncidente registrarHistorial(Incidente incidente, EstadoIncidente anterior,
+			EstadoIncidente nuevo, LocalDateTime fechaHora) {
 		HistorialEstadoIncidente h = new HistorialEstadoIncidente();
 		h.setIncidente(incidente);
 		h.setEstadoAnterior(anterior);
 		h.setEstadoNuevo(nuevo);
 		h.setFechaHora(fechaHora);
-		historialRepo.save(h);
+		return historialRepo.save(h);
 	}
+	
 
 	private boolean transicionPermitida(EstadoIncidente actual, EstadoIncidente nuevo) {
 		switch (actual) {
