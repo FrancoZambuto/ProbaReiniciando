@@ -1,0 +1,711 @@
+CASOS DE PRUEBA - S03 INCIDENTES
+Responsable: Samanta Garces
+Datos necesarios: Para ejecutar los casos de prueba de S03 no se requieren datos adicionales: se utilizan los contratos generados por scripts/datos_prueba.sql, en el apartado "Caso para prueba S01".
+
+Se dispone de los siguientes contratos:
+Contrato 1: ACTIVO y vigente (inicio 01/03/2026, 24 meses).
+Contrato 2: ACTIVO y vigente hasta el 31/12/2026. Si las pruebas se realizan después de esa fecha, el contrato deja de estar vigente y los casos 1c y 5b deben reemplazarse por el contrato 1.
+Contrato 3: FINALIZADO.
+Contrato 4: eliminado.
+
+Los casos se ejecutan en el orden indicado y partiendo de una tabla de incidentes vacía: los tres incidentes registrados en el punto 1 reciben los ids 1, 2 y 3.
+Las fechas y horas de alta las genera el sistema al registrar cada incidente, por lo que no se indican valores fijos.
+
+----------------------------------------------------------------------------------------------------
+0) OBTENER EL TOKEN (JWT)
+----------------------------------------------------------------------------------------------------
+Todos los endpoints requieren token, salvo /login y Swagger. Reemplazar <TOKEN> en cada caso por el valor obtenido:
+
+curl --location --request POST 'http://localhost:8081/login' --header 'Content-Type: application/json' --data-raw '{"username": "admin", "pass": "admin123"}'
+
+HTTP esperado: 200 OK
+Resultado esperado: {"token": "eyJ...", "tipo": "Bearer"}
+
+Sin token o con un token inválido, cualquier endpoint responde 401 Unauthorized:
+curl --location 'http://localhost:8081/incidentes/1'
+Resultado esperado: {"message":"Debe autenticarse con un token válido","status_code":401,"uri":"/incidentes/1"}
+
+----------------------------------------------------------------------------------------------------
+1) OPERACIÓN PRINCIPAL EXITOSA: REGISTRAR INCIDENTES
+----------------------------------------------------------------------------------------------------
+1a) Registrar un incidente de plomería con prioridad alta
+
+curl --location 'http://localhost:8081/incidentes' --header 'Authorization: Bearer <TOKEN>' \
+--header 'Content-Type: application/json' \
+--data '{
+    "contratoId": 1,
+    "titulo": "Pérdida de agua en la cocina",
+    "descripcion": "La canilla de la cocina pierde agua de forma constante desde hace dos días.",
+    "categoria": "PLOMERIA",
+    "prioridad": "ALTA"
+}
+'
+
+HTTP esperado: 201 Created
+Resultado esperado:
+{
+    "id": 1,
+    "contratoId": 1,
+    "titulo": "Pérdida de agua en la cocina",
+    "descripcion": "La canilla de la cocina pierde agua de forma constante desde hace dos días.",
+    "categoria": "PLOMERIA",
+    "prioridad": "ALTA",
+    "fechaAlta": "2026-11-26T19:05:11.8138042",
+    "estado": "ABIERTO",
+    "_links": {
+    "self": {
+    "href": "http://localhost:8081/incidentes/2"
+     }, "contrato": {
+    "href": "http://localhost:8081/contratos/1" },
+    "informes": {
+    "href": "http://localhost:8081/informes-resolucion?incidenteId=2"
+    }
+ }
+
+
+1b) Registrar un incidente de electricidad con prioridad baja
+
+curl --location 'http://localhost:8081/incidentes' --header 'Authorization: Bearer <TOKEN>' \
+--header 'Content-Type: application/json' \
+--data '{
+    "contratoId": 1,
+    "titulo": "Tomacorriente sin funcionar en el dormitorio",
+    "descripcion": "El tomacorriente de la pared norte del dormitorio dejó de funcionar.",
+    "categoria": "ELECTRICIDAD",
+    "prioridad": "BAJA"
+}
+'
+
+HTTP esperado: 201 Created
+Resultado esperado:
+{
+    "id": 2,
+    "contratoId": 1,
+    "titulo": "Tomacorriente sin funcionar en el dormitorio",
+    "descripcion": "El tomacorriente de la pared norte del dormitorio dejó de funcionar.",
+    "categoria": "ELECTRICIDAD",
+    "prioridad": "BAJA",
+    "fechaAlta": "2026-11-26T19:42:39.3050429",
+    "estado": "ABIERTO",
+    "_links": {
+        "self": {
+            "href": "http://localhost:8081/incidentes/2"
+        },
+        "contrato": {
+            "href": "http://localhost:8081/contratos/1"
+        },
+        "informes": {
+            "href": "http://localhost:8081/informes-resolucion?incidenteId=2"
+        }
+    }
+}
+
+1c) Registrar un incidente general con prioridad media
+
+curl --location 'http://localhost:8081/incidentes' --header 'Authorization: Bearer <TOKEN>' \
+--header 'Content-Type: application/json' \
+--data '{
+    "contratoId": 2,
+    "titulo": "Puerta del balcón desajustada",
+    "descripcion": "La puerta del balcón roza el marco y no cierra bien.",
+    "categoria": "GENERAL",
+    "prioridad": "MEDIA"
+}
+'
+
+HTTP esperado: 201 Created
+Resultado esperado:
+{
+    "id": 3,
+    "contratoId": 2,
+    "titulo": "Puerta del balcón desajustada",
+    "descripcion": "La puerta del balcón roza el marco y no cierra bien.",
+    "categoria": "GENERAL",
+    "prioridad": "MEDIA",
+    "fechaAlta": "2026-11-26T19:44:07.826972",
+    "estado": "ABIERTO",
+    "_links": {
+        "self": {
+            "href": "http://localhost:8081/incidentes/3"
+        },
+        "contrato": {
+            "href": "http://localhost:8081/contratos/2"
+        },
+        "informes": {
+            "href": "http://localhost:8081/informes-resolucion?incidenteId=3"
+        }
+    }
+}
+
+----------------------------------------------------------------------------------------------------
+2) CONSULTA POR IDENTIFICADOR
+----------------------------------------------------------------------------------------------------
+curl --location 'http://localhost:8081/incidentes/1' --header 'Authorization: Bearer <TOKEN>'
+
+HTTP esperado: 200 OK
+Resultado esperado:
+{
+    "id": 1,
+    "contratoId": 1,
+    "titulo": "Pérdida de agua en la cocina",
+    "descripcion": "La canilla de la cocina pierde agua de forma constante desde hace dos días.",
+    "categoria": "PLOMERIA",
+    "prioridad": "ALTA",
+    "fechaAlta": "2026-11-26T19:41:23.956939",
+    "estado": "ABIERTO",
+    "_links": {
+        "self": {
+            "href": "http://localhost:8081/incidentes/1"
+        },
+        "contrato": {
+            "href": "http://localhost:8081/contratos/1"
+        },
+        "informes": {
+            "href": "http://localhost:8081/informes-resolucion?incidenteId=1"
+        }
+    }
+}
+2b) Navegar al contrato mediante el enlace HATEOAS (si la respuesta incluye el enlace al contrato)
+curl --location 'http://localhost:8081/contratos/1' --header 'Authorization: Bearer <TOKEN>'
+
+HTTP esperado: 200 OK
+Resultado esperado:
+{
+    "id": 1,
+    "propiedadId": 1,
+    "propietarioId": 1,
+    "inquilinoId": 3,
+    "fechaInicio": "2026-03-01",
+    "fechaFin": "2028-02-29",
+    "duracionMeses": 24,
+    "importeMensual": 350000,
+    "diaVencimientoMensual": 10,
+    "descripcion": "Alquiler departamento San Martín 2450",
+    "estado": "ACTIVO",
+    "_links": {
+        "self": {
+            "href": "http://localhost:8081/contratos/1"
+        }
+    }
+}
+
+----------------------------------------------------------------------------------------------------
+3) CAMBIO DE ESTADO
+----------------------------------------------------------------------------------------------------
+3a) Pasar un incidente de ABIERTO a EN_PROCESO
+
+curl --location --request PATCH 'http://localhost:8081/incidentes/1/estado' --header 'Authorization: Bearer <TOKEN>' \
+--header 'Content-Type: application/json' \
+--data '{"estado": "EN_PROCESO"}'
+
+HTTP esperado: 200 OK
+Resultado esperado:
+{
+    "id": 1,
+    "contratoId": 1,
+    "titulo": "Pérdida de agua en la cocina",
+    "descripcion": "La canilla de la cocina pierde agua de forma constante desde hace dos días.",
+    "categoria": "PLOMERIA",
+    "prioridad": "ALTA",
+    "fechaAlta": "2026-11-26T19:41:23.956939",
+    "estado": "EN_PROCESO",
+    "_links": {
+        "self": {
+            "href": "http://localhost:8081/incidentes/1"
+        },
+        "contrato": {
+            "href": "http://localhost:8081/contratos/1"
+        },
+        "informes": {
+            "href": "http://localhost:8081/informes-resolucion?incidenteId=1"
+        }
+    }
+}
+
+3b) Cancelar un incidente abierto
+
+curl --location --request PATCH 'http://localhost:8081/incidentes/2/estado' --header 'Authorization: Bearer <TOKEN>' \
+--header 'Content-Type: application/json' \
+--data '{"estado": "CANCELADO"}'
+
+HTTP esperado: 200 OK
+Resultado esperado:
+{
+    "id": 2,
+    "contratoId": 1,
+    "titulo": "Tomacorriente sin funcionar en el dormitorio",
+    "descripcion": "El tomacorriente de la pared norte del dormitorio dejó de funcionar.",
+    "categoria": "ELECTRICIDAD",
+    "prioridad": "BAJA",
+    "fechaAlta": "2026-11-26T19:42:39.305043",
+    "estado": "CANCELADO",
+    "_links": {
+        "self": {
+            "href": "http://localhost:8081/incidentes/2"
+        },
+        "contrato": {
+            "href": "http://localhost:8081/contratos/1"
+        },
+        "informes": {
+            "href": "http://localhost:8081/informes-resolucion?incidenteId=2"
+        }
+    }
+}
+
+----------------------------------------------------------------------------------------------------
+4) HISTORIAL DE ESTADOS
+----------------------------------------------------------------------------------------------------
+curl --location 'http://localhost:8081/incidentes/1/historial' --header 'Authorization: Bearer <TOKEN>'
+
+HTTP esperado: 200 OK
+Resultado esperado: lista ordenada cronológicamente con el alta del incidente y el cambio de ABIERTO a EN_PROCESO
+[
+    {
+        "id": 1,
+        "incidenteId": 1,
+        "estadoAnterior": null,
+        "estadoNuevo": "ABIERTO",
+        "fechaHora": "2026-11-26T19:41:23.956939",
+        "links": [
+            {
+                "rel": "self",
+                "href": "http://localhost:8081/incidentes/1/historial"
+            },
+            {
+                "rel": "incidente",
+                "href": "http://localhost:8081/incidentes/1"
+            }
+        ]
+    },
+    {
+        "id": 4,
+        "incidenteId": 1,
+        "estadoAnterior": "ABIERTO",
+        "estadoNuevo": "EN_PROCESO",
+        "fechaHora": "2026-11-26T19:47:39.521156",
+        "links": [
+            {
+                "rel": "self",
+                "href": "http://localhost:8081/incidentes/1/historial"
+            },
+            {
+                "rel": "incidente",
+                "href": "http://localhost:8081/incidentes/1"
+            }
+        ]
+    }
+]
+
+----------------------------------------------------------------------------------------------------
+5) LISTADO CON FILTROS
+----------------------------------------------------------------------------------------------------
+Estado de los incidentes al llegar a este punto: 1 EN_PROCESO y 2 CANCELADO (contrato 1), 3 ABIERTO (contrato 2).
+
+5a) Filtrar por contrato
+curl --location 'http://localhost:8081/incidentes?contratoId=1' --header 'Authorization: Bearer <TOKEN>'
+
+HTTP esperado: 200 OK
+Resultado esperado: los incidentes 1 y 2
+
+   [
+    {
+        "id": 1,
+        "contratoId": 1,
+        "titulo": "Pérdida de agua en la cocina",
+        "descripcion": "La canilla de la cocina pierde agua de forma constante desde hace dos días.",
+        "categoria": "PLOMERIA",
+        "prioridad": "ALTA",
+        "fechaAlta": "2026-11-26T19:41:23.956939",
+        "estado": "EN_PROCESO",
+        "links": [
+            {
+                "rel": "self",
+                "href": "http://localhost:8081/incidentes/1"
+            },
+            {
+                "rel": "contrato",
+                "href": "http://localhost:8081/contratos/1"
+            },
+            {
+                "rel": "informes",
+                "href": "http://localhost:8081/informes-resolucion?incidenteId=1"
+            }
+        ]
+    },
+    {
+        "id": 2,
+        "contratoId": 1,
+        "titulo": "Tomacorriente sin funcionar en el dormitorio",
+        "descripcion": "El tomacorriente de la pared norte del dormitorio dejó de funcionar.",
+        "categoria": "ELECTRICIDAD",
+        "prioridad": "BAJA",
+        "fechaAlta": "2026-11-26T19:42:39.305043",
+        "estado": "CANCELADO",
+        "links": [
+            {
+                "rel": "self",
+                "href": "http://localhost:8081/incidentes/2"
+            },
+            {
+                "rel": "contrato",
+                "href": "http://localhost:8081/contratos/1"
+            },
+            {
+                "rel": "informes",
+                "href": "http://localhost:8081/informes-resolucion?incidenteId=2"
+            }
+        ]
+    }
+
+]
+
+5b) Filtrar por otro contrato
+curl --location 'http://localhost:8081/incidentes?contratoId=2' --header 'Authorization: Bearer <TOKEN>'
+
+HTTP esperado: 200 OK
+Resultado esperado: solo el incidente 3
+[
+    {
+        "id": 3,
+        "contratoId": 2,
+        "titulo": "Puerta del balcón desajustada",
+        "descripcion": "La puerta del balcón roza el marco y no cierra bien.",
+        "categoria": "GENERAL",
+        "prioridad": "MEDIA",
+        "fechaAlta": "2026-11-26T19:44:07.826972",
+        "estado": "ABIERTO",
+        "links": [
+            {
+                "rel": "self",
+                "href": "http://localhost:8081/incidentes/3"
+            },
+            {
+                "rel": "contrato",
+                "href": "http://localhost:8081/contratos/2"
+            },
+            {
+                "rel": "informes",
+                "href": "http://localhost:8081/informes-resolucion?incidenteId=3"
+            }
+        ]
+    }
+]
+5c) Filtrar por estado
+curl --location 'http://localhost:8081/incidentes?estado=EN_PROCESO' --header 'Authorization: Bearer <TOKEN>'
+
+HTTP esperado: 200 OK
+Resultado esperado: solo el incidente 1
+[
+    {
+        "id": 1,
+        "contratoId": 1,
+        "titulo": "Pérdida de agua en la cocina",
+        "descripcion": "La canilla de la cocina pierde agua de forma constante desde hace dos días.",
+        "categoria": "PLOMERIA",
+        "prioridad": "ALTA",
+        "fechaAlta": "2026-11-26T19:41:23.956939",
+        "estado": "EN_PROCESO",
+        "links": [
+            {
+                "rel": "self",
+                "href": "http://localhost:8081/incidentes/1"
+            },
+            {
+                "rel": "contrato",
+                "href": "http://localhost:8081/contratos/1"
+            },
+            {
+                "rel": "informes",
+                "href": "http://localhost:8081/informes-resolucion?incidenteId=1"
+            }
+        ]
+    }
+]
+
+5d) Filtrar por categoría y prioridad combinadas
+curl --location 'http://localhost:8081/incidentes?categoria=ELECTRICIDAD&prioridad=BAJA' --header 'Authorization: Bearer <TOKEN>'
+
+HTTP esperado: 200 OK
+Resultado esperado: solo el incidente 2
+[
+    {
+        "id": 2,
+        "contratoId": 1,
+        "titulo": "Tomacorriente sin funcionar en el dormitorio",
+        "descripcion": "El tomacorriente de la pared norte del dormitorio dejó de funcionar.",
+        "categoria": "ELECTRICIDAD",
+        "prioridad": "BAJA",
+        "fechaAlta": "2026-11-26T19:42:39.305043",
+        "estado": "CANCELADO",
+        "links": [
+            {
+                "rel": "self",
+                "href": "http://localhost:8081/incidentes/2"
+            },
+            {
+                "rel": "contrato",
+                "href": "http://localhost:8081/contratos/1"
+            },
+            {
+                "rel": "informes",
+                "href": "http://localhost:8081/informes-resolucion?incidenteId=2"
+            }
+        ]
+    }
+]
+
+5e) Filtro sin resultados
+curl --location 'http://localhost:8081/incidentes?estado=REABIERTO' --header 'Authorization: Bearer <TOKEN>'
+
+HTTP esperado: 200 OK
+Resultado esperado: []
+
+----------------------------------------------------------------------------------------------------
+6) RECHAZO POR DATOS INVÁLIDOS
+----------------------------------------------------------------------------------------------------
+6a) Datos obligatorios faltantes (sin título ni descripción)
+
+curl --location 'http://localhost:8081/incidentes' --header 'Authorization: Bearer <TOKEN>' \
+--header 'Content-Type: application/json' \
+--data '{
+    "contratoId": 1,
+    "categoria": "PLOMERIA",
+    "prioridad": "ALTA"
+}'
+
+HTTP esperado: 400 Bad Request
+Resultado esperado:
+{
+    "message": "responsable: El responsable es obligatorio\ndescripcionTrabajo: La descripción del trabajo es obligatoria\n",
+    "status_code": 400,
+    "uri": "/incidentes/1/resolucion"
+}
+6b) Categoría inexistente
+
+curl --location 'http://localhost:8081/incidentes' --header 'Authorization: Bearer <TOKEN>' \
+--header 'Content-Type: application/json' \
+--data '{
+    "contratoId": 1,
+    "titulo": "Humedad en el techo",
+    "descripcion": "Aparecieron manchas de humedad en el techo del living.",
+    "categoria": "ALBANILERIA",
+    "prioridad": "ALTA"
+}'
+
+HTTP esperado: 400 Bad Request
+Resultado esperado:
+{
+    "message": "El cuerpo de la solicitud no tiene un formato válido",
+    "status_code": 400,
+    "uri": "/incidentes"
+}
+
+6c) Prioridad inexistente
+
+curl --location 'http://localhost:8081/incidentes' --header 'Authorization: Bearer <TOKEN>' \
+--header 'Content-Type: application/json' \
+--data '{
+    "contratoId": 1,
+    "titulo": "Humedad en el techo",
+    "descripcion": "Aparecieron manchas de humedad en el techo del living.",
+    "categoria": "GENERAL",
+    "prioridad": "URGENTE"
+}'
+
+HTTP esperado: 400 Bad Request
+Resultado esperado:
+{
+  "message": "El cuerpo de la solicitud no tiene un formato válido",
+  "status_code": 400,
+  "uri": "/incidentes"
+}
+
+6d) Título de más de 255 caracteres
+
+curl --location 'http://localhost:8081/incidentes' --header 'Authorization: Bearer <TOKEN>' \
+--header 'Content-Type: application/json' \
+--data '{
+    "contratoId": 1,
+    "titulo": "Problema de mantenimiento Problema de mantenimiento Problema de mantenimiento Problema de mantenimiento Problema de mantenimiento Problema de mantenimiento Problema de mantenimiento Problema de mantenimiento Problema de mantenimiento Problema de mantenimie",
+    "descripcion": "Descripción válida del problema.",
+    "categoria": "GENERAL",
+    "prioridad": "BAJA"
+}'
+
+HTTP esperado: 400 Bad Request
+Resultado esperado:
+{
+  "message": "titulo: El título no puede superar los 255 caracteres\n",
+  "status_code": 400,
+  "uri": "/incidentes"
+}
+
+6e) Cambio de estado con un valor inexistente
+
+curl --location --request PATCH 'http://localhost:8081/incidentes/3/estado' --header 'Authorization: Bearer <TOKEN>' \
+--header 'Content-Type: application/json' \
+--data '{"estado": "FINALIZADO"}'
+
+HTTP esperado: 400 Bad Request
+Resultado esperado:
+{
+  "message": "El cuerpo de la solicitud no tiene un formato válido",
+  "status_code": 400,
+  "uri": "/incidentes/3/estado"
+}
+
+6f) Cambio de estado sin indicar el estado
+
+curl --location --request PATCH 'http://localhost:8081/incidentes/3/estado' --header 'Authorization: Bearer <TOKEN>' \
+--header 'Content-Type: application/json' \
+--data '{}'
+
+HTTP esperado: 400 Bad Request
+Resultado esperado:
+{
+  "message": "estado: El estado es obligatorio\n",
+  "status_code": 400,
+  "uri": "/incidentes/3/estado"
+}
+
+
+----------------------------------------------------------------------------------------------------
+7) RECHAZO POR RECURSO INEXISTENTE
+----------------------------------------------------------------------------------------------------
+7a) Contrato inexistente al registrar un incidente
+
+curl --location 'http://localhost:8081/incidentes' --header 'Authorization: Bearer <TOKEN>' \
+--header 'Content-Type: application/json' \
+--data '{
+    "contratoId": 999,
+    "titulo": "Pérdida de gas en la cocina",
+    "descripcion": "Se siente olor a gas cerca de la cocina.",
+    "categoria": "GAS",
+    "prioridad": "ALTA"
+}
+'
+
+HTTP esperado: 404 Not Found
+Resultado esperado:
+{
+  "message": "No existe el contrato con id=999",
+  "status_code": 404,
+  "uri": "/incidentes"
+}
+
+7b) Incidente inexistente
+
+curl --location 'http://localhost:8081/incidentes/999' --header 'Authorization: Bearer <TOKEN>'
+
+HTTP esperado: 404 Not Found
+Resultado esperado:
+{
+  "message": "No existe el incidente con id=999",
+  "status_code": 404,
+  "uri": "/incidentes/999"
+}
+
+7c) Cambio de estado de un incidente inexistente
+
+curl --location --request PATCH 'http://localhost:8081/incidentes/999/estado' --header 'Authorization: Bearer <TOKEN>' \
+--header 'Content-Type: application/json' \
+--data '{"estado": "EN_PROCESO"}'
+
+HTTP esperado: 404 Not Found
+Resultado esperado:
+{
+  "message": "No existe el incidente con id=999",
+  "status_code": 404,
+  "uri": "/incidentes/999/estado"
+}
+
+7d) Historial de un incidente inexistente
+
+curl --location 'http://localhost:8081/incidentes/999/historial' --header 'Authorization: Bearer <TOKEN>'
+
+HTTP esperado: 404 Not Found
+Resultado esperado:
+{
+  "message": "No existe el incidente con id=999",
+  "status_code": 404,
+  "uri": "/incidentes/999/historial"
+}
+
+----------------------------------------------------------------------------------------------------
+8) RECHAZO POR CONFLICTO DE NEGOCIO
+----------------------------------------------------------------------------------------------------
+8a) Registrar un incidente sobre un contrato que no está activo (contrato 3, FINALIZADO)
+
+curl --location 'http://localhost:8081/incidentes' --header 'Authorization: Bearer <TOKEN>' \
+--header 'Content-Type: application/json' \
+--data '{
+    "contratoId": 3,
+    "titulo": "Pérdida de agua en el baño",
+    "descripcion": "La canilla del baño pierde agua.",
+    "categoria": "PLOMERIA",
+    "prioridad": "MEDIA"
+}
+'
+
+HTTP esperado: 409 Conflict
+Resultado esperado:
+{
+  "message": "El contrato 3 no se encuentra activo (estado: FINALIZADO)",
+  "status_code": 409,
+  "uri": "/incidentes"
+}
+
+8b) Registrar un incidente sobre un contrato eliminado (contrato 4)
+
+curl --location 'http://localhost:8081/incidentes' --header 'Authorization: Bearer <TOKEN>' \
+--header 'Content-Type: application/json' \
+--data '{
+    "contratoId": 4,
+    "titulo": "Pérdida de agua en el baño",
+    "descripcion": "La canilla del baño pierde agua.",
+    "categoria": "PLOMERIA",
+    "prioridad": "MEDIA"
+}
+'
+
+HTTP esperado: 409 Conflict
+Resultado esperado:
+{
+  "message": "No existe el contrato con id=4",
+  "status_code": 404,
+  "uri": "/incidentes"
+}
+
+8c) Transición de estado no permitida: resolver un incidente ABIERTO mediante el cambio de estado
+(la resolución se realiza mediante el informe de resolución de S04)
+
+curl --location --request PATCH 'http://localhost:8081/incidentes/3/estado' --header 'Authorization: Bearer <TOKEN>' \
+--header 'Content-Type: application/json' \
+--data '{"estado": "RESUELTO"}'
+
+HTTP esperado: 409 Conflict
+Resultado esperado:
+{
+  "message": "La resolución de un incidente se realiza mediante un informe de resolución",
+  "status_code": 409,
+  "uri": "/incidentes/3/estado"
+}
+
+8d) Transición de estado no permitida: reactivar un incidente cancelado (el incidente 2 quedó CANCELADO en el caso 3b)
+
+curl --location --request PATCH 'http://localhost:8081/incidentes/2/estado' --header 'Authorization: Bearer <TOKEN>' \
+--header 'Content-Type: application/json' \
+--data '{"estado": "EN_PROCESO"}'
+
+HTTP esperado: 409 Conflict
+Resultado esperado:
+{
+  "message": "Los incidentes cancelados no admiten nuevas transiciones",
+  "status_code": 409,
+  "uri": "/incidentes/2/estado"
+}
+
+----------------------------------------------------------------------------------------------------
+
+Documentación interactiva (Swagger UI): http://localhost:8081/swagger-ui/index.html
+Especificación OpenAPI (JSON): http://localhost:8081/v3/api-docs
