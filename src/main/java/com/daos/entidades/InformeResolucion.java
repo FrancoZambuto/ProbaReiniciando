@@ -3,7 +3,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import jakarta.persistence.*;
 import jakarta.persistence.Id;
-
+import jakarta.persistence.OneToOne;
 @Entity
 @Table(name = "INFORME_RESOLUCION")
 public class InformeResolucion {
@@ -15,7 +15,11 @@ public class InformeResolucion {
     @ManyToOne(optional = false)
     @JoinColumn(name = "incidente_id", nullable = false)
     private Incidente incidente;
-
+    
+    @OneToOne(optional = false)
+	@JoinColumn(name = "transicion_resolucion_id", nullable = false, unique = true)
+	private HistorialEstadoIncidente transicionResolucion;
+    
     @Column(nullable = false, length = 1000)
     private String descripcionTrabajo;
 
@@ -66,6 +70,14 @@ public class InformeResolucion {
 		this.fechaHoraResolucion = fechaHoraResolucion;
 	}
 
+	public HistorialEstadoIncidente getTransicionResolucion() {
+		return transicionResolucion;
+	}
+
+	public void setTransicionResolucion(HistorialEstadoIncidente transicionResolucion) {
+		this.transicionResolucion = transicionResolucion;
+	}
+	
 	public BigDecimal getCosto() {
 		return costo;
 	}
