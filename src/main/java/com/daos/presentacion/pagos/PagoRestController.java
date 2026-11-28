@@ -51,7 +51,7 @@ public class PagoRestController {
     })
 })
     @PostMapping
-    public ResponseEntity<PagoResponseDTO> registrar(
+    public ResponseEntity<EntityModel<PagoResponseDTO>> registrar(
             @Valid @RequestBody PagoForm form) throws Excepcion {
 
         Pago pago = new Pago();
@@ -67,8 +67,10 @@ public class PagoRestController {
         Pago registrado = pagoService.registrar(pago, form.getFacturaId());
 
         PagoResponseDTO dto = convertirDTO(registrado);
+        EntityModel<PagoResponseDTO> recurso = EntityModel.of(dto);
+        agregarLinks(registrado, recurso);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(recurso);
     }
 
     @Operation(summary = "Obtiene un pago a partir de su id")

@@ -10,7 +10,7 @@ Factura 3: vencida.
 Factura 4: pendiente.
 Factura 5: pendiente.
 
-Las fechas utilizadas en los ejemplos corresponden al 15/11/2026. Si las pruebas se realizan en otra fecha, deberán actualizarse los valores correspondientes.
+Los casos funcionan en cualquier fecha: los pagos exitosos no indican fechaPago, por lo que el sistema registra la fecha de ejecución.
 
 ----------------------------------------------------------------------------------------------------
 0) OBTENER EL TOKEN (JWT)
@@ -35,7 +35,6 @@ curl --location 'http://localhost:8081/pagos' --header 'Authorization: Bearer <T
 --header 'Content-Type: application/json' \
 --data '{
     "facturaId": 2,
-    "fechaPago": "2026-11-15",
     "medioPago": "TRANSFERENCIA",
     "importePagado": 45000.00,
     "interes": 0.00
@@ -45,9 +44,17 @@ curl --location 'http://localhost:8081/pagos' --header 'Authorization: Bearer <T
 HTTP esperado: 201 Created
 Resultado esperado:
 {
+    "_links": {
+        "self": {
+            "href": "http://localhost:8081/pagos/1"
+        },
+        "factura": {
+            "href": "http://localhost:8081/facturas/2"
+        }
+    },
     "id": 1,
     "facturaId": 2,
-    "fechaPago": "2026-11-15",
+    "fechaPago": "<fecha de ejecución>",
     "medioPago": "TRANSFERENCIA",
     "importePagado": 45000.00,
     "interes": 0.00
@@ -59,7 +66,6 @@ curl --location 'http://localhost:8081/pagos' --header 'Authorization: Bearer <T
 --header 'Content-Type: application/json' \
 --data '{
     "facturaId": 4,
-    "fechaPago": "2026-11-15",
     "medioPago": "EFECTIVO",
     "importePagado": 360000.00,
     "interes": 10000.00
@@ -69,9 +75,17 @@ curl --location 'http://localhost:8081/pagos' --header 'Authorization: Bearer <T
 HTTP esperado: 201 Created
 Resultado esperado:
 {
+    "_links": {
+        "self": {
+            "href": "http://localhost:8081/pagos/2"
+        },
+        "factura": {
+            "href": "http://localhost:8081/facturas/4"
+        }
+    },
     "id": 2,
     "facturaId": 4,
-    "fechaPago": "2026-11-15",
+    "fechaPago": "<fecha de ejecución>",
     "medioPago": "EFECTIVO",
     "importePagado": 360000.00,
     "interes": 10000.00
@@ -95,7 +109,7 @@ Resultado esperado:
     },
     "id": 1,
     "facturaId": 2,
-    "fechaPago": "2026-11-15",
+    "fechaPago": "<fecha de ejecución>",
     "medioPago": "TRANSFERENCIA",
     "importePagado": 45000.00,
     "interes": 0.00
@@ -148,7 +162,7 @@ Resultado esperado:
                 },
                 "id": 1,
                 "facturaId": 2,
-                "fechaPago": "2026-11-15",
+                "fechaPago": "<fecha de ejecución>",
                 "medioPago": "TRANSFERENCIA",
                 "importePagado": 45000.00,
                 "interes": 0.00
@@ -225,7 +239,7 @@ curl --location 'http://localhost:8081/pagos' --header 'Authorization: Bearer <T
 --header 'Content-Type: application/json' \
 --data '{
     "facturaId": 5,
-    "fechaPago": "2027-01-01",
+    "fechaPago": "2099-01-01",
     "medioPago": "TRANSFERENCIA",
     "importePagado": 45000.00,
     "interes": 0.00

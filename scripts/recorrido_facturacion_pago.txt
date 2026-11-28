@@ -10,7 +10,7 @@ Ejecutar previamente `scripts/datos_prueba.sql` sobre la base de datos vacía, i
 
 Los IDs de factura y pago asumen que las tablas correspondientes están vacías al comenzar.
 
-Las fechas utilizadas corresponden a los casos de prueba proporcionados. Si se ejecutan en otra fecha, deberán actualizarse los valores correspondientes.
+El recorrido funciona en cualquier fecha: la factura usa el período 2027-06 (vence el 2027-06-10) y el pago no indica fechaPago, por lo que el sistema registra la fecha de ejecución.
 
 ----------------------------------------------------------------------------------------------------
 0) OBTENER EL TOKEN
@@ -22,23 +22,22 @@ HTTP esperado: 200 OK
 Resultado esperado: {"token": "eyJ...", "tipo": "Bearer"}. Reemplazar `<TOKEN>` en todos los pasos siguientes por ese valor.
 
 ----------------------------------------------------------------------------------------------------
-1) EMITIR LA FACTURA MENSUAL
+1) EMITIR LA FACTURA
 ----------------------------------------------------------------------------------------------------
 
-curl --location --request POST 'http://localhost:8081/facturas' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"contratoId": 1, "periodo": "2026-11", "concepto": "Reparación de puerta por mal uso", "importe": 45000}'
+curl --location --request POST 'http://localhost:8081/facturas' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"contratoId": 1, "periodo": "2027-06", "concepto": "Reparación de puerta por mal uso", "importe": 45000}'
 
 HTTP esperado: 201 Created
-Resultado esperado: factura id=1, tipo ADICIONAL, importe 45000, estado PENDIENTE. Se admite aunque ya exista
-la facturación mensual del período.
+Resultado esperado: factura id=1, tipo ADICIONAL, importe 45000, estado PENDIENTE, fechaVencimiento 2027-06-10.
 
 ----------------------------------------------------------------------------------------------------
 2) REGISTRAR EL PAGO 
 ----------------------------------------------------------------------------------------------------
 
-curl --location --request POST 'http://localhost:8081/pagos' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"facturaId": 1, "fechaPago": "2026-11-15", "medioPago": "TRANSFERENCIA", "importePagado": 45000.00, "interes": 0.00}'
+curl --location --request POST 'http://localhost:8081/pagos' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"facturaId": 1, "medioPago": "TRANSFERENCIA", "importePagado": 45000.00, "interes": 0.00}'
 
 HTTP esperado: 201 Created
-Resultado esperado: pago id=1, facturaId=1, fechaPago 2026-11-15, medioPago TRANSFERENCIA, importePagado 45000.00 e interes 0.00. La factura 1 pasa a estado PAGADA.
+Resultado esperado: pago id=1, facturaId=1, fechaPago = fecha de ejecución, medioPago TRANSFERENCIA, importePagado 45000.00 e interes 0.00. La factura 1 pasa a estado PAGADA.
 
 ----------------------------------------------------------------------------------------------------
 3) CONSULTAR LA FACTURA PAGADA
@@ -71,7 +70,7 @@ Resultado esperado: datos del pago con los enlaces HATEOAS
     },
     "id": 1,
     "facturaId": 1,
-    "fechaPago": "2026-11-15",
+    "fechaPago": "<fecha de ejecución>",
     "medioPago": "TRANSFERENCIA",
     "importePagado": 45000.00,
     "interes": 0.00
@@ -92,7 +91,7 @@ curl --location 'http://localhost:8081/pagos' \
     "interes": 0.00
 }'
 
-HTTP esperado: 409 Conflic
+HTTP esperado: 409 Conflict
 Resultado esperado: No permite realizar el pago.
 {
     "message": "La factura no se encuentra en un estado que permita realizar el pago.",

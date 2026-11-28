@@ -1,0 +1,3651 @@
+{
+  "info": {
+    "name": "HogarYA API - 02-GarcesNievaReynosoZambuto",
+    "description": "Casos de prueba del TP Integrador DAOS (Actividad 02), generados desde los archivos de scripts/.\n\nCorrer las carpetas en orden con el Runner, respetando lo que indica la descripción de cada carpeta. Cada carpeta empieza con el login, que guarda el token en la variable {{token}}; el resto de los requests lo usan automáticamente (Bearer Token heredado de la colección).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8081"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. S01 Facturas",
+      "description": "Antes de correr: base vacía y scripts/datos_prueba.sql ejecutado hasta el INSERT de usuario (sin el bloque \"Caso para prueba S02\").\n\nCasos generados desde scripts/casos_prueba_S01_facturas.txt",
+      "item": [
+        {
+          "name": "Login (obtiene el token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "    pm.collectionVariables.set(\"token\", pm.response.json().token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "login"
+              ]
+            },
+            "description": "HTTP esperado: 200 OK. Resultado esperado: {\"token\": \"eyJ...\", \"tipo\": \"Bearer\"}\n\nSin token o con un token inválido, cualquier endpoint responde 401 Unauthorized:",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"pass\": \"admin123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Sin token -> 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 401\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/facturas/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "facturas",
+                "1"
+              ]
+            },
+            "description": "Resultado esperado: {\"message\":\"Debe autenticarse con un token válido\",\"status_code\":401,\"uri\":\"/facturas/1\"}",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "1) OPERACIÓN PRINCIPAL EXITOSA - Emitir la facturación mensual indicando solo contrato y período",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/facturas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "facturas"
+              ]
+            },
+            "description": "HTTP esperado: 201 Created\nResultado esperado: factura id=1, tipo MENSUAL, estado PENDIENTE, importe 350000.00 (copiado del contrato),\nfechaEmision = fecha actual, fechaVencimiento 2027-06-10 (día de vencimiento del contrato), enlaces self y contrato.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contratoId\": 1,\n  \"periodo\": \"2027-06\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "1b) Emitir una factura adicional (reparación a cargo del inquilino) indicando el importe",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/facturas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "facturas"
+              ]
+            },
+            "description": "HTTP esperado: 201 Created\nResultado esperado: factura id=2, tipo ADICIONAL, importe 45000, estado PENDIENTE. Se admite aunque ya exista\nla facturación mensual del período.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contratoId\": 1,\n  \"periodo\": \"2027-06\",\n  \"concepto\": \"Reparación de puerta por mal uso\",\n  \"importe\": 45000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "1c) Vencimiento en un mes sin el día de vencimiento del contrato (contrato 2 vence el día 31)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/facturas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "facturas"
+              ]
+            },
+            "description": "HTTP esperado: 201 Created\nResultado esperado: factura id=3, fechaVencimiento 2026-02-28 (último día del mes), estado VENCIDA\n(su vencimiento ya transcurrió).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contratoId\": 2,\n  \"periodo\": \"2026-02\",\n  \"fechaEmision\": \"2026-02-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "2) CONSULTA POR IDENTIFICADOR",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/facturas/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "facturas",
+                "1"
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado: datos de la factura 1 con los enlaces HATEOAS\n  \"self\":     http://localhost:8081/facturas/1\n  \"contrato\": http://localhost:8081/contratos/1\n(el enlace \"pago\" se agrega solo cuando la factura tiene un pago registrado en S02)"
+          }
+        },
+        {
+          "name": "2b) Navegar al contrato mediante el enlace HATEOAS",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contratos/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contratos",
+                "1"
+              ]
+            },
+            "description": "HTTP esperado: 200 OK"
+          }
+        },
+        {
+          "name": "3) LISTADO CON FILTROS",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/facturas?contratoId=1&tipo=MENSUAL",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "facturas"
+              ],
+              "query": [
+                {
+                  "key": "contratoId",
+                  "value": "1"
+                },
+                {
+                  "key": "tipo",
+                  "value": "MENSUAL"
+                }
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado: solo la factura 1 (facturación mensual del contrato 1)."
+          }
+        },
+        {
+          "name": "3b) Filtrar por estado (la condición de vencida se calcula al consultar)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/facturas?estado=VENCIDA",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "facturas"
+              ],
+              "query": [
+                {
+                  "key": "estado",
+                  "value": "VENCIDA"
+                }
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado: solo la factura 3.\n\nFiltros disponibles: contratoId, periodo (AAAA-MM), estado (PENDIENTE, VENCIDA, PAGADA, ANULADA), tipo (MENSUAL, ADICIONAL)."
+          }
+        },
+        {
+          "name": "4) RECHAZO POR DATOS INVÁLIDOS",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/facturas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "facturas"
+              ]
+            },
+            "description": "HTTP esperado: 400 Bad Request\nResultado esperado: {\"message\":\"periodo: El período debe tener el formato AAAA-MM\n\",\"status_code\":400,\"uri\":\"/facturas\"}. No se guarda ninguna factura.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contratoId\": 1,\n  \"periodo\": \"2026-13\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "4b) Datos obligatorios faltantes e importe negativo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/facturas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "facturas"
+              ]
+            },
+            "description": "HTTP esperado: 400 Bad Request\nResultado esperado: {\"message\":\"contratoId: El contrato es obligatorio\nimporte: El importe debe ser mayor a cero\n\",\"status_code\":400,\"uri\":\"/facturas\"}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"periodo\": \"2027-06\",\n  \"importe\": -5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "5) RECHAZO POR RECURSO INEXISTENTE",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/facturas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "facturas"
+              ]
+            },
+            "description": "HTTP esperado: 404 Not Found\nResultado esperado: {\"message\":\"No existe el contrato con id=99\",\"status_code\":404,\"uri\":\"/facturas\"}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contratoId\": 99,\n  \"periodo\": \"2027-06\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "5b) Contrato eliminado lógicamente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/facturas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "facturas"
+              ]
+            },
+            "description": "HTTP esperado: 404 Not Found",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contratoId\": 4,\n  \"periodo\": \"2027-06\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "5c) Factura inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/facturas/999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "facturas",
+                "999"
+              ]
+            },
+            "description": "HTTP esperado: 404 Not Found"
+          }
+        },
+        {
+          "name": "6) RECHAZO POR CONFLICTO DE NEGOCIO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 409\", function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/facturas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "facturas"
+              ]
+            },
+            "description": "HTTP esperado: 409 Conflict\nResultado esperado: {\"message\":\"Ya existe una factura de facturación mensual no anulada para el contrato 1 y el período 2027-06\",\"status_code\":409,\"uri\":\"/facturas\"}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contratoId\": 1,\n  \"periodo\": \"2027-06\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "6b) Contrato no activo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 409\", function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/facturas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "facturas"
+              ]
+            },
+            "description": "HTTP esperado: 409 Conflict (\"El contrato 3 no se encuentra activo (estado: FINALIZADO)\")",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contratoId\": 3,\n  \"periodo\": \"2025-05\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "6c) Período fuera de la vigencia del contrato (vigencia del contrato 1: 2026-03-01 a 2028-02-29)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 409\", function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/facturas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "facturas"
+              ]
+            },
+            "description": "HTTP esperado: 409 Conflict",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contratoId\": 1,\n  \"periodo\": \"2028-03\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "6d) Fecha de emisión posterior al vencimiento",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 409\", function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/facturas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "facturas"
+              ]
+            },
+            "description": "HTTP esperado: 409 Conflict\nResultado esperado: {\"message\":\"La fecha de emisión (2027-07-20) no puede ser posterior a la fecha de vencimiento (2027-07-10)\",\"status_code\":409,\"uri\":\"/facturas\"}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contratoId\": 1,\n  \"periodo\": \"2027-07\",\n  \"fechaEmision\": \"2027-07-20\",\n  \"fechaVencimiento\": \"2027-07-10\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "7) ANULACIÓN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/facturas/1/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "facturas",
+                "1",
+                "estado"
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado: factura 1 con estado ANULADA.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"ANULADA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "7b) Una vez anulada, puede emitirse una nueva facturación mensual para el período (se conserva la anterior)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/facturas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "facturas"
+              ]
+            },
+            "description": "HTTP esperado: 201 Created (nueva factura id=4; la factura 1 sigue existiendo como ANULADA)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contratoId\": 1,\n  \"periodo\": \"2027-06\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "7c) Anular una factura ya anulada",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 409\", function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/facturas/1/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "facturas",
+                "1",
+                "estado"
+              ]
+            },
+            "description": "HTTP esperado: 409 Conflict (\"Solo pueden anularse facturas pendientes o vencidas...\")",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"ANULADA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "7d) Intentar marcar una factura como pagada (solo se permite registrando un pago en S02)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 409\", function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/facturas/2/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "facturas",
+                "2",
+                "estado"
+              ]
+            },
+            "description": "HTTP esperado: 409 Conflict\n\nDocumentación interactiva (Swagger UI): http://localhost:8081/swagger-ui/index.html\nEspecificación OpenAPI (JSON): http://localhost:8081/v3/api-docs",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"PAGADA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. S02 Pagos",
+      "description": "Antes de correr: haber corrido la carpeta S01 y ejecutado en MySQL el bloque \"Caso para prueba S02\" de scripts/datos_prueba.sql (crea la factura 5). El caso 6c (restricción UNIQUE) se prueba en MySQL, ver casos_prueba_S02_pagos.txt.\n\nCasos generados desde scripts/casos_prueba_S02_pagos.txt",
+      "item": [
+        {
+          "name": "Login (obtiene el token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "    pm.collectionVariables.set(\"token\", pm.response.json().token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "login"
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado: {\"token\": \"eyJ...\", \"tipo\": \"Bearer\"}\n\nSin token o con un token inválido, cualquier endpoint responde 401 Unauthorized:",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"pass\": \"admin123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Sin token -> 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 401\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pagos/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pagos",
+                "1"
+              ]
+            },
+            "description": "Resultado esperado: {\"message\":\"Debe autenticarse con un token válido\",\"status_code\":401,\"uri\":\"/pagos/1\"}",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "1a) Registrar un pago",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pagos"
+              ]
+            },
+            "description": "HTTP esperado: 201 Created\nResultado esperado:\n{\n    \"_links\": {\n        \"self\": {\n            \"href\": \"http://localhost:8081/pagos/1\"\n        },\n        \"factura\": {\n            \"href\": \"http://localhost:8081/facturas/2\"\n        }\n    },\n    \"id\": 1,\n    \"facturaId\": 2,\n    \"fechaPago\": \"<fecha de ejecución>\",\n    \"medioPago\": \"TRANSFERENCIA\",\n    \"importePagado\": 45000.00,\n    \"interes\": 0.00\n}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"facturaId\": 2,\n  \"medioPago\": \"TRANSFERENCIA\",\n  \"importePagado\": 45000.0,\n  \"interes\": 0.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "1b) Registrar un pago con intereses",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pagos"
+              ]
+            },
+            "description": "HTTP esperado: 201 Created\nResultado esperado:\n{\n    \"_links\": {\n        \"self\": {\n            \"href\": \"http://localhost:8081/pagos/2\"\n        },\n        \"factura\": {\n            \"href\": \"http://localhost:8081/facturas/4\"\n        }\n    },\n    \"id\": 2,\n    \"facturaId\": 4,\n    \"fechaPago\": \"<fecha de ejecución>\",\n    \"medioPago\": \"EFECTIVO\",\n    \"importePagado\": 360000.00,\n    \"interes\": 10000.00\n}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"facturaId\": 4,\n  \"medioPago\": \"EFECTIVO\",\n  \"importePagado\": 360000.0,\n  \"interes\": 10000.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "2) CONSULTA POR IDENTIFICADOR",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pagos/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pagos",
+                "1"
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado:\n{\n    \"_links\": {\n        \"self\": {\n            \"href\": \"http://localhost:8081/pagos/1\"\n        },\n        \"factura\": {\n            \"href\": \"http://localhost:8081/facturas/2\"\n        }\n    },\n    \"id\": 1,\n    \"facturaId\": 2,\n    \"fechaPago\": \"<fecha de ejecución>\",\n    \"medioPago\": \"TRANSFERENCIA\",\n    \"importePagado\": 45000.00,\n    \"interes\": 0.00\n}"
+          }
+        },
+        {
+          "name": "2b) Navegar a la factura mediante el enlace HATEOAS",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/facturas/2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "facturas",
+                "2"
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado:\n{\n    \"_links\": {\n        \"self\": {\n            \"href\": \"http://localhost:8081/facturas/2\"\n        },\n        \"contrato\": {\n            \"href\": \"http://localhost:8081/contratos/1\"\n        }\n    },\n    \"concepto\": \"Reparación de puerta por mal uso\",\n    \"contratoId\": 1,\n    \"estado\": \"PAGADA\",\n    \"fechaEmision\": \"2026-11-15\",\n    \"fechaVencimiento\": \"2026-12-10\",\n    \"id\": 2,\n    \"importe\": 45000.00,\n    \"periodo\": \"2026-12\",\n    \"tipo\": \"ADICIONAL\"\n}"
+          }
+        },
+        {
+          "name": "3) LISTADO CON FILTROS",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pagos?facturaId=2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pagos"
+              ],
+              "query": [
+                {
+                  "key": "facturaId",
+                  "value": "2"
+                }
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado:\n{\n    \"_embedded\": {\n        \"pagoResponseDTOList\": [\n            {\n                \"_links\": {\n                    \"self\": {\n                        \"href\": \"http://localhost:8081/pagos/1\"\n                    },\n                    \"factura\": {\n                        \"href\": \"http://localhost:8081/facturas/2\"\n                    }\n                },\n                \"id\": 1,\n                \"facturaId\": 2,\n                \"fechaPago\": \"<fecha de ejecución>\",\n                \"medioPago\": \"TRANSFERENCIA\",\n                \"importePagado\": 45000.00,\n                \"interes\": 0.00\n            }\n        ]\n    }\n}"
+          }
+        },
+        {
+          "name": "4a) Importe pagado inferior al importe de la factura",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pagos"
+              ]
+            },
+            "description": "HTTP esperado: 400 Bad Request\nResultado esperado: \n{\n    \"message\": \"El importe pagado debe coincidir con el importe de la factura más los intereses.\",\n    \"status_code\": 400,\n    \"uri\": \"/pagos\"\n}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"facturaId\": 5,\n  \"medioPago\": \"TRANSFERENCIA\",\n  \"importePagado\": 1000.0,\n  \"interes\": 0.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "4b) Importe pagado negativo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pagos"
+              ]
+            },
+            "description": "HTTP esperado: 400 Bad Request\nResultado esperado:\n{\n    \"message\": \"El importe pagado debe ser mayor a cero.\",\n    \"status_code\": 400,\n    \"uri\": \"/pagos\"\n}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"facturaId\": 5,\n  \"medioPago\": \"TRANSFERENCIA\",\n  \"importePagado\": -1000.0,\n  \"interes\": 0.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "4c) Interés negativo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pagos"
+              ]
+            },
+            "description": "HTTP esperado: 400 Bad Request\nResultado esperado:\n{\n    \"message\": \"El interés no puede ser negativo.\",\n    \"status_code\": 400,\n    \"uri\": \"/pagos\"\n}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"facturaId\": 5,\n  \"medioPago\": \"TRANSFERENCIA\",\n  \"importePagado\": 44000.0,\n  \"interes\": -1000.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "4d) Fecha de pago futura",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pagos"
+              ]
+            },
+            "description": "HTTP esperado: 400 Bad Request\nResultado esperado: \n{\n    \"message\": \"La fecha de pago no puede ser futura.\",\n    \"status_code\": 400,\n    \"uri\": \"/pagos\"\n}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"facturaId\": 5,\n  \"fechaPago\": \"2099-01-01\",\n  \"medioPago\": \"TRANSFERENCIA\",\n  \"importePagado\": 45000.0,\n  \"interes\": 0.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "4e) Fecha de pago anterior a la emisión de la factura",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pagos"
+              ]
+            },
+            "description": "HTTP esperado: 400 Bad Request\nResultado esperado: \n{\n    \"message\": \"La fecha de pago debe ser igual o posterior a la fecha de emisión de la factura.\",\n    \"status_code\": 400,\n    \"uri\": \"/pagos\"\n}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"facturaId\": 5,\n  \"fechaPago\": \"2025-01-01\",\n  \"medioPago\": \"TRANSFERENCIA\",\n  \"importePagado\": 280000.0,\n  \"interes\": 0.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "5a) Factura inexistente al registrar un pago",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pagos"
+              ]
+            },
+            "description": "HTTP esperado: 404 Not Found\nResultado esperado:\n{\n    \"message\": \"No se encontró la factura.\",\n    \"status_code\": 404,\n    \"uri\": \"/pagos\"\n}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"facturaId\": 999,\n  \"medioPago\": \"TRANSFERENCIA\",\n  \"importePagado\": 45000.0,\n  \"interes\": 0.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "5b) Pago inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pagos/999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pagos",
+                "999"
+              ]
+            },
+            "description": "HTTP esperado: 404 Not Found\nResultado esperado: \n{\n    \"message\": \"No se encontró el pago.\",\n    \"status_code\": 404,\n    \"uri\": \"/pagos/999\"\n}"
+          }
+        },
+        {
+          "name": "6a) Intentar registrar dos pagos para la misma factura",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 409\", function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pagos"
+              ]
+            },
+            "description": "HTTP esperado: 409 Conflict\nResultado esperado: \n{\n    \"message\": \"La factura no se encuentra en un estado que permita realizar el pago.\",\n    \"status_code\": 409,\n    \"uri\": \"/pagos\"\n}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"facturaId\": 2,\n  \"medioPago\": \"TRANSFERENCIA\",\n  \"importePagado\": 350000.0,\n  \"interes\": 0.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "6b) Intentar pagar una factura anulada",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 409\", function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pagos"
+              ]
+            },
+            "description": "HTTP esperado: 409 Conflict\nResultado esperado:\n{\n    \"message\": \"La factura no se encuentra en un estado que permita realizar el pago.\",\n    \"status_code\": 409,\n    \"uri\": \"/pagos\"\n}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"facturaId\": 1,\n  \"medioPago\": \"TRANSFERENCIA\",\n  \"importePagado\": 350000.0,\n  \"interes\": 0.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. S03 Incidentes",
+      "description": "Antes de correr: tablas de incidentes vacías (los incidentes registrados reciben los ids 1, 2 y 3).\n\nCasos generados desde scripts/casos_prueba_S03_incidentes.txt",
+      "item": [
+        {
+          "name": "Login (obtiene el token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "    pm.collectionVariables.set(\"token\", pm.response.json().token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "login"
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado: {\"token\": \"eyJ...\", \"tipo\": \"Bearer\"}\n\nSin token o con un token inválido, cualquier endpoint responde 401 Unauthorized:",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"pass\": \"admin123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Sin token -> 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 401\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes",
+                "1"
+              ]
+            },
+            "description": "Resultado esperado: {\"message\":\"Debe autenticarse con un token válido\",\"status_code\":401,\"uri\":\"/incidentes/1\"}",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "1a) Registrar un incidente de plomería con prioridad alta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes"
+              ]
+            },
+            "description": "HTTP esperado: 201 Created\nResultado esperado:\n{\n    \"id\": 1,\n    \"contratoId\": 1,\n    \"titulo\": \"Pérdida de agua en la cocina\",\n    \"descripcion\": \"La canilla de la cocina pierde agua de forma constante desde hace dos días.\",\n    \"categoria\": \"PLOMERIA\",\n    \"prioridad\": \"ALTA\",\n    \"fechaAlta\": \"2026-11-26T19:05:11.8138042\",\n    \"estado\": \"ABIERTO\",\n    \"_links\": {\n    \"self\": {\n    \"href\": \"http://localhost:8081/incidentes/2\"\n     }, \"contrato\": {\n    \"href\": \"http://localhost:8081/contratos/1\" },\n    \"informes\": {\n    \"href\": \"http://localhost:8081/informes-resolucion?incidenteId=2\"\n    }\n }",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contratoId\": 1,\n  \"titulo\": \"Pérdida de agua en la cocina\",\n  \"descripcion\": \"La canilla de la cocina pierde agua de forma constante desde hace dos días.\",\n  \"categoria\": \"PLOMERIA\",\n  \"prioridad\": \"ALTA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "1b) Registrar un incidente de electricidad con prioridad baja",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes"
+              ]
+            },
+            "description": "HTTP esperado: 201 Created\nResultado esperado:\n{\n    \"id\": 2,\n    \"contratoId\": 1,\n    \"titulo\": \"Tomacorriente sin funcionar en el dormitorio\",\n    \"descripcion\": \"El tomacorriente de la pared norte del dormitorio dejó de funcionar.\",\n    \"categoria\": \"ELECTRICIDAD\",\n    \"prioridad\": \"BAJA\",\n    \"fechaAlta\": \"2026-11-26T19:42:39.3050429\",\n    \"estado\": \"ABIERTO\",\n    \"_links\": {\n        \"self\": {\n            \"href\": \"http://localhost:8081/incidentes/2\"\n        },\n        \"contrato\": {\n            \"href\": \"http://localhost:8081/contratos/1\"\n        },\n        \"informes\": {\n            \"href\": \"http://localhost:8081/informes-resolucion?incidenteId=2\"\n        }\n    }\n}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contratoId\": 1,\n  \"titulo\": \"Tomacorriente sin funcionar en el dormitorio\",\n  \"descripcion\": \"El tomacorriente de la pared norte del dormitorio dejó de funcionar.\",\n  \"categoria\": \"ELECTRICIDAD\",\n  \"prioridad\": \"BAJA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "1c) Registrar un incidente general con prioridad media",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes"
+              ]
+            },
+            "description": "HTTP esperado: 201 Created\nResultado esperado:\n{\n    \"id\": 3,\n    \"contratoId\": 2,\n    \"titulo\": \"Puerta del balcón desajustada\",\n    \"descripcion\": \"La puerta del balcón roza el marco y no cierra bien.\",\n    \"categoria\": \"GENERAL\",\n    \"prioridad\": \"MEDIA\",\n    \"fechaAlta\": \"2026-11-26T19:44:07.826972\",\n    \"estado\": \"ABIERTO\",\n    \"_links\": {\n        \"self\": {\n            \"href\": \"http://localhost:8081/incidentes/3\"\n        },\n        \"contrato\": {\n            \"href\": \"http://localhost:8081/contratos/2\"\n        },\n        \"informes\": {\n            \"href\": \"http://localhost:8081/informes-resolucion?incidenteId=3\"\n        }\n    }\n}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contratoId\": 2,\n  \"titulo\": \"Puerta del balcón desajustada\",\n  \"descripcion\": \"La puerta del balcón roza el marco y no cierra bien.\",\n  \"categoria\": \"GENERAL\",\n  \"prioridad\": \"MEDIA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "2) CONSULTA POR IDENTIFICADOR",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes",
+                "1"
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado:\n{\n    \"id\": 1,\n    \"contratoId\": 1,\n    \"titulo\": \"Pérdida de agua en la cocina\",\n    \"descripcion\": \"La canilla de la cocina pierde agua de forma constante desde hace dos días.\",\n    \"categoria\": \"PLOMERIA\",\n    \"prioridad\": \"ALTA\",\n    \"fechaAlta\": \"2026-11-26T19:41:23.956939\",\n    \"estado\": \"ABIERTO\",\n    \"_links\": {\n        \"self\": {\n            \"href\": \"http://localhost:8081/incidentes/1\"\n        },\n        \"contrato\": {\n            \"href\": \"http://localhost:8081/contratos/1\"\n        },\n        \"informes\": {\n            \"href\": \"http://localhost:8081/informes-resolucion?incidenteId=1\"\n        }\n    }\n}"
+          }
+        },
+        {
+          "name": "2b) Navegar al contrato mediante el enlace HATEOAS (si la respuesta incluye el enlace al contrato)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contratos/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contratos",
+                "1"
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado:\n{\n    \"id\": 1,\n    \"propiedadId\": 1,\n    \"propietarioId\": 1,\n    \"inquilinoId\": 3,\n    \"fechaInicio\": \"2026-03-01\",\n    \"fechaFin\": \"2028-02-29\",\n    \"duracionMeses\": 24,\n    \"importeMensual\": 350000,\n    \"diaVencimientoMensual\": 10,\n    \"descripcion\": \"Alquiler departamento San Martín 2450\",\n    \"estado\": \"ACTIVO\",\n    \"_links\": {\n        \"self\": {\n            \"href\": \"http://localhost:8081/contratos/1\"\n        }\n    }\n}"
+          }
+        },
+        {
+          "name": "3a) Pasar un incidente de ABIERTO a EN_PROCESO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes/1/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes",
+                "1",
+                "estado"
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado:\n{\n    \"id\": 1,\n    \"contratoId\": 1,\n    \"titulo\": \"Pérdida de agua en la cocina\",\n    \"descripcion\": \"La canilla de la cocina pierde agua de forma constante desde hace dos días.\",\n    \"categoria\": \"PLOMERIA\",\n    \"prioridad\": \"ALTA\",\n    \"fechaAlta\": \"2026-11-26T19:41:23.956939\",\n    \"estado\": \"EN_PROCESO\",\n    \"_links\": {\n        \"self\": {\n            \"href\": \"http://localhost:8081/incidentes/1\"\n        },\n        \"contrato\": {\n            \"href\": \"http://localhost:8081/contratos/1\"\n        },\n        \"informes\": {\n            \"href\": \"http://localhost:8081/informes-resolucion?incidenteId=1\"\n        }\n    }\n}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"EN_PROCESO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "3b) Cancelar un incidente abierto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes/2/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes",
+                "2",
+                "estado"
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado:\n{\n    \"id\": 2,\n    \"contratoId\": 1,\n    \"titulo\": \"Tomacorriente sin funcionar en el dormitorio\",\n    \"descripcion\": \"El tomacorriente de la pared norte del dormitorio dejó de funcionar.\",\n    \"categoria\": \"ELECTRICIDAD\",\n    \"prioridad\": \"BAJA\",\n    \"fechaAlta\": \"2026-11-26T19:42:39.305043\",\n    \"estado\": \"CANCELADO\",\n    \"_links\": {\n        \"self\": {\n            \"href\": \"http://localhost:8081/incidentes/2\"\n        },\n        \"contrato\": {\n            \"href\": \"http://localhost:8081/contratos/1\"\n        },\n        \"informes\": {\n            \"href\": \"http://localhost:8081/informes-resolucion?incidenteId=2\"\n        }\n    }\n}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"CANCELADO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "4) HISTORIAL DE ESTADOS",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes/1/historial",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes",
+                "1",
+                "historial"
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado: lista ordenada cronológicamente con el alta del incidente y el cambio de ABIERTO a EN_PROCESO\n[\n    {\n        \"id\": 1,\n        \"incidenteId\": 1,\n        \"estadoAnterior\": null,\n        \"estadoNuevo\": \"ABIERTO\",\n        \"fechaHora\": \"2026-11-26T19:41:23.956939\",\n        \"links\": [\n            {\n                \"rel\": \"self\",\n                \"href\": \"http://localhost:8081/incidentes/1/historial\"\n            },\n            {\n                \"rel\": \"incidente\",\n                \"href\": \"http://localhost:8081/incidentes/1\"\n            }\n        ]\n    },\n    {\n        \"id\": 4,\n        \"incidenteId\": 1,\n        \"estadoAnterior\": \"ABIERTO\",\n        \"estadoNuevo\": \"EN_PROCESO\",\n        \"fechaHora\": \"2026-11-26T19:47:39.521156\",\n        \"links\": [\n            {\n                \"rel\": \"self\",\n                \"href\": \"http://localhost:8081/incidentes/1/historial\"\n            },\n            {\n                \"rel\": \"incidente\",\n                \"href\": \"http://localhost:8081/incidentes/1\"\n            }\n        ]\n    }\n]"
+          }
+        },
+        {
+          "name": "5a) Filtrar por contrato",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes?contratoId=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes"
+              ],
+              "query": [
+                {
+                  "key": "contratoId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado: los incidentes 1 y 2\n\n   [\n    {\n        \"id\": 1,\n        \"contratoId\": 1,\n        \"titulo\": \"Pérdida de agua en la cocina\",\n        \"descripcion\": \"La canilla de la cocina pierde agua de forma constante desde hace dos días.\",\n        \"categoria\": \"PLOMERIA\",\n        \"prioridad\": \"ALTA\",\n        \"fechaAlta\": \"2026-11-26T19:41:23.956939\",\n        \"estado\": \"EN_PROCESO\",\n        \"links\": [\n            {\n                \"rel\": \"self\",\n                \"href\": \"http://localhost:8081/incidentes/1\"\n            },\n            {\n                \"rel\": \"contrato\",\n                \"href\": \"http://localhost:8081/contratos/1\"\n            },\n            {\n                \"rel\": \"informes\",\n                \"href\": \"http://localhost:8081/informes-resolucion?incidenteId=1\"\n            }\n        ]\n    },\n    {\n        \"id\": 2,\n        \"contratoId\": 1,\n        \"titulo\": \"Tomacorriente sin funcionar en el dormitorio\",\n        \"descripcion\": \"El tomacorriente de la pared norte del dormitorio dejó de funcionar.\",\n        \"categoria\": \"ELECTRICIDAD\",\n        \"prioridad\": \"BAJA\",\n        \"fechaAlta\": \"2026-11-26T19:42:39.305043\",\n        \"estado\": \"CANCELADO\",\n        \"links\": ["
+          }
+        },
+        {
+          "name": "5b) Filtrar por otro contrato",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes?contratoId=2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes"
+              ],
+              "query": [
+                {
+                  "key": "contratoId",
+                  "value": "2"
+                }
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado: solo el incidente 3\n[\n    {\n        \"id\": 3,\n        \"contratoId\": 2,\n        \"titulo\": \"Puerta del balcón desajustada\",\n        \"descripcion\": \"La puerta del balcón roza el marco y no cierra bien.\",\n        \"categoria\": \"GENERAL\",\n        \"prioridad\": \"MEDIA\",\n        \"fechaAlta\": \"2026-11-26T19:44:07.826972\",\n        \"estado\": \"ABIERTO\",\n        \"links\": [\n            {\n                \"rel\": \"self\",\n                \"href\": \"http://localhost:8081/incidentes/3\"\n            },\n            {\n                \"rel\": \"contrato\",\n                \"href\": \"http://localhost:8081/contratos/2\"\n            },\n            {\n                \"rel\": \"informes\",\n                \"href\": \"http://localhost:8081/informes-resolucion?incidenteId=3\"\n            }\n        ]\n    }\n]"
+          }
+        },
+        {
+          "name": "5c) Filtrar por estado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes?estado=EN_PROCESO",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes"
+              ],
+              "query": [
+                {
+                  "key": "estado",
+                  "value": "EN_PROCESO"
+                }
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado: solo el incidente 1\n[\n    {\n        \"id\": 1,\n        \"contratoId\": 1,\n        \"titulo\": \"Pérdida de agua en la cocina\",\n        \"descripcion\": \"La canilla de la cocina pierde agua de forma constante desde hace dos días.\",\n        \"categoria\": \"PLOMERIA\",\n        \"prioridad\": \"ALTA\",\n        \"fechaAlta\": \"2026-11-26T19:41:23.956939\",\n        \"estado\": \"EN_PROCESO\",\n        \"links\": [\n            {\n                \"rel\": \"self\",\n                \"href\": \"http://localhost:8081/incidentes/1\"\n            },\n            {\n                \"rel\": \"contrato\",\n                \"href\": \"http://localhost:8081/contratos/1\"\n            },\n            {\n                \"rel\": \"informes\",\n                \"href\": \"http://localhost:8081/informes-resolucion?incidenteId=1\"\n            }\n        ]\n    }\n]"
+          }
+        },
+        {
+          "name": "5d) Filtrar por categoría y prioridad combinadas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes?categoria=ELECTRICIDAD&prioridad=BAJA",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes"
+              ],
+              "query": [
+                {
+                  "key": "categoria",
+                  "value": "ELECTRICIDAD"
+                },
+                {
+                  "key": "prioridad",
+                  "value": "BAJA"
+                }
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado: solo el incidente 2\n[\n    {\n        \"id\": 2,\n        \"contratoId\": 1,\n        \"titulo\": \"Tomacorriente sin funcionar en el dormitorio\",\n        \"descripcion\": \"El tomacorriente de la pared norte del dormitorio dejó de funcionar.\",\n        \"categoria\": \"ELECTRICIDAD\",\n        \"prioridad\": \"BAJA\",\n        \"fechaAlta\": \"2026-11-26T19:42:39.305043\",\n        \"estado\": \"CANCELADO\",\n        \"links\": [\n            {\n                \"rel\": \"self\",\n                \"href\": \"http://localhost:8081/incidentes/2\"\n            },\n            {\n                \"rel\": \"contrato\",\n                \"href\": \"http://localhost:8081/contratos/1\"\n            },\n            {\n                \"rel\": \"informes\",\n                \"href\": \"http://localhost:8081/informes-resolucion?incidenteId=2\"\n            }\n        ]\n    }\n]"
+          }
+        },
+        {
+          "name": "5e) Filtro sin resultados",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes?estado=REABIERTO",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes"
+              ],
+              "query": [
+                {
+                  "key": "estado",
+                  "value": "REABIERTO"
+                }
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado: []"
+          }
+        },
+        {
+          "name": "6a) Datos obligatorios faltantes (sin título ni descripción)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes"
+              ]
+            },
+            "description": "HTTP esperado: 400 Bad Request\nResultado esperado:\n{\n    \"message\": \"responsable: El responsable es obligatorio\\ndescripcionTrabajo: La descripción del trabajo es obligatoria\\n\",\n    \"status_code\": 400,\n    \"uri\": \"/incidentes/1/resolucion\"\n}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contratoId\": 1,\n  \"categoria\": \"PLOMERIA\",\n  \"prioridad\": \"ALTA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "6b) Categoría inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes"
+              ]
+            },
+            "description": "HTTP esperado: 400 Bad Request\nResultado esperado:\n{\n    \"message\": \"El cuerpo de la solicitud no tiene un formato válido\",\n    \"status_code\": 400,\n    \"uri\": \"/incidentes\"\n}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contratoId\": 1,\n  \"titulo\": \"Humedad en el techo\",\n  \"descripcion\": \"Aparecieron manchas de humedad en el techo del living.\",\n  \"categoria\": \"ALBANILERIA\",\n  \"prioridad\": \"ALTA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "6c) Prioridad inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes"
+              ]
+            },
+            "description": "HTTP esperado: 400 Bad Request\nResultado esperado:\n{\n  \"message\": \"El cuerpo de la solicitud no tiene un formato válido\",\n  \"status_code\": 400,\n  \"uri\": \"/incidentes\"\n}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contratoId\": 1,\n  \"titulo\": \"Humedad en el techo\",\n  \"descripcion\": \"Aparecieron manchas de humedad en el techo del living.\",\n  \"categoria\": \"GENERAL\",\n  \"prioridad\": \"URGENTE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "6d) Título de más de 255 caracteres",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes"
+              ]
+            },
+            "description": "HTTP esperado: 400 Bad Request\nResultado esperado:\n{\n  \"message\": \"titulo: El título no puede superar los 255 caracteres\\n\",\n  \"status_code\": 400,\n  \"uri\": \"/incidentes\"\n}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contratoId\": 1,\n  \"titulo\": \"Problema de mantenimiento Problema de mantenimiento Problema de mantenimiento Problema de mantenimiento Problema de mantenimiento Problema de mantenimiento Problema de mantenimiento Problema de mantenimiento Problema de mantenimiento Problema de mantenimie\",\n  \"descripcion\": \"Descripción válida del problema.\",\n  \"categoria\": \"GENERAL\",\n  \"prioridad\": \"BAJA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "6e) Cambio de estado con un valor inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes/3/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes",
+                "3",
+                "estado"
+              ]
+            },
+            "description": "HTTP esperado: 400 Bad Request\nResultado esperado:\n{\n  \"message\": \"El cuerpo de la solicitud no tiene un formato válido\",\n  \"status_code\": 400,\n  \"uri\": \"/incidentes/3/estado\"\n}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"FINALIZADO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "6f) Cambio de estado sin indicar el estado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes/3/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes",
+                "3",
+                "estado"
+              ]
+            },
+            "description": "HTTP esperado: 400 Bad Request\nResultado esperado:\n{\n  \"message\": \"estado: El estado es obligatorio\\n\",\n  \"status_code\": 400,\n  \"uri\": \"/incidentes/3/estado\"\n}",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "7a) Contrato inexistente al registrar un incidente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes"
+              ]
+            },
+            "description": "HTTP esperado: 404 Not Found\nResultado esperado:\n{\n  \"message\": \"No existe el contrato con id=999\",\n  \"status_code\": 404,\n  \"uri\": \"/incidentes\"\n}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contratoId\": 999,\n  \"titulo\": \"Pérdida de gas en la cocina\",\n  \"descripcion\": \"Se siente olor a gas cerca de la cocina.\",\n  \"categoria\": \"GAS\",\n  \"prioridad\": \"ALTA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "7b) Incidente inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes/999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes",
+                "999"
+              ]
+            },
+            "description": "HTTP esperado: 404 Not Found\nResultado esperado:\n{\n  \"message\": \"No existe el incidente con id=999\",\n  \"status_code\": 404,\n  \"uri\": \"/incidentes/999\"\n}"
+          }
+        },
+        {
+          "name": "7c) Cambio de estado de un incidente inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes/999/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes",
+                "999",
+                "estado"
+              ]
+            },
+            "description": "HTTP esperado: 404 Not Found\nResultado esperado:\n{\n  \"message\": \"No existe el incidente con id=999\",\n  \"status_code\": 404,\n  \"uri\": \"/incidentes/999/estado\"\n}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"EN_PROCESO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "7d) Historial de un incidente inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes/999/historial",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes",
+                "999",
+                "historial"
+              ]
+            },
+            "description": "HTTP esperado: 404 Not Found\nResultado esperado:\n{\n  \"message\": \"No existe el incidente con id=999\",\n  \"status_code\": 404,\n  \"uri\": \"/incidentes/999/historial\"\n}"
+          }
+        },
+        {
+          "name": "8a) Registrar un incidente sobre un contrato que no está activo (contrato 3, FINALIZADO)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 409\", function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes"
+              ]
+            },
+            "description": "HTTP esperado: 409 Conflict\nResultado esperado:\n{\n  \"message\": \"El contrato 3 no se encuentra activo (estado: FINALIZADO)\",\n  \"status_code\": 409,\n  \"uri\": \"/incidentes\"\n}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contratoId\": 3,\n  \"titulo\": \"Pérdida de agua en el baño\",\n  \"descripcion\": \"La canilla del baño pierde agua.\",\n  \"categoria\": \"PLOMERIA\",\n  \"prioridad\": \"MEDIA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "8b) Registrar un incidente sobre un contrato eliminado (contrato 4)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes"
+              ]
+            },
+            "description": "HTTP esperado: 404 Not Found\nResultado esperado:\n{\n  \"message\": \"No existe el contrato con id=4\",\n  \"status_code\": 404,\n  \"uri\": \"/incidentes\"\n}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contratoId\": 4,\n  \"titulo\": \"Pérdida de agua en el baño\",\n  \"descripcion\": \"La canilla del baño pierde agua.\",\n  \"categoria\": \"PLOMERIA\",\n  \"prioridad\": \"MEDIA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "8c) Transición de estado no permitida: resolver un incidente ABIERTO mediante el cambio de estado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 409\", function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes/3/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes",
+                "3",
+                "estado"
+              ]
+            },
+            "description": "HTTP esperado: 409 Conflict\nResultado esperado:\n{\n  \"message\": \"La resolución de un incidente se realiza mediante un informe de resolución\",\n  \"status_code\": 409,\n  \"uri\": \"/incidentes/3/estado\"\n}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"RESUELTO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "8d) Transición de estado no permitida: reactivar un incidente cancelado (el incidente 2 quedó CANCELADO en el caso 3b)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 409\", function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes/2/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes",
+                "2",
+                "estado"
+              ]
+            },
+            "description": "HTTP esperado: 409 Conflict\nResultado esperado:\n{\n  \"message\": \"Los incidentes cancelados no admiten nuevas transiciones\",\n  \"status_code\": 409,\n  \"uri\": \"/incidentes/2/estado\"\n}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"EN_PROCESO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Recorrido de mantenimiento",
+      "description": "Antes de correr, vaciar las tablas de incidentes en MySQL:\nSET FOREIGN_KEY_CHECKS=0; TRUNCATE informe_resolucion; TRUNCATE historial_estado_incidente; TRUNCATE incidente; SET FOREIGN_KEY_CHECKS=1;\n\nCasos generados desde scripts/recorrido_mantenimiento.txt",
+      "item": [
+        {
+          "name": "Login (obtiene el token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "    pm.collectionVariables.set(\"token\", pm.response.json().token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "login"
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado: {\"token\": \"eyJ...\", \"tipo\": \"Bearer\"}. Reemplazar <TOKEN> en los pasos siguientes por ese valor.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"pass\": \"admin123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "1) REGISTRAR EL INCIDENTE",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes"
+              ]
+            },
+            "description": "HTTP esperado: 201 Created\nResultado esperado: incidente id=1, estado ABIERTO, enlaces self, contrato e informes\n(\"informes\": http://localhost:8081/informes-resolucion?incidenteId=1).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contratoId\": 1,\n  \"titulo\": \"Pérdida de agua en el baño\",\n  \"descripcion\": \"Gotea la canilla del lavatorio\",\n  \"categoria\": \"PLOMERIA\",\n  \"prioridad\": \"MEDIA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "2) RECHAZO: RESOLVER UN INCIDENTE QUE NO ESTÁ EN PROCESO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 409\", function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/informes-resolucion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "informes-resolucion"
+              ]
+            },
+            "description": "HTTP esperado: 409 Conflict\nResultado esperado: {\"message\":\"El incidente debe estar EN_PROCESO\",\"status_code\":409,\"uri\":\"/informes-resolucion\"}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"incidenteId\": 1,\n  \"descripcionTrabajo\": \"Intento de resolución\",\n  \"responsable\": \"Juan Pérez (plomero)\",\n  \"costo\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "2b) Comprobar que el rechazo no dejó registros parciales",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/informes-resolucion?incidenteId=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "informes-resolucion"
+              ],
+              "query": [
+                {
+                  "key": "incidenteId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado: [] (no se generó ningún informe; el incidente sigue ABIERTO y su historial tiene una sola entrada)."
+          }
+        },
+        {
+          "name": "3) INICIAR LA ATENCIÓN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes/1/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes",
+                "1",
+                "estado"
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado: incidente 1 con estado EN_PROCESO.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"EN_PROCESO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "4) RESOLVER CON UN INFORME",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/informes-resolucion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "informes-resolucion"
+              ]
+            },
+            "description": "HTTP esperado: 201 Created\nResultado esperado: informe id=1 del incidente 1, con enlaces self e incidente. El incidente pasa a RESUELTO.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"incidenteId\": 1,\n  \"descripcionTrabajo\": \"Cambio del cuerito de la canilla\",\n  \"responsable\": \"Juan Pérez (plomero)\",\n  \"costo\": 15000,\n  \"observaciones\": \"Sin daños adicionales\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "4b) Rechazo: intentar un segundo informe mientras el incidente permanece resuelto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 409\", function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/informes-resolucion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "informes-resolucion"
+              ]
+            },
+            "description": "HTTP esperado: 409 Conflict\nResultado esperado: {\"message\":\"El incidente debe estar EN_PROCESO\",\"status_code\":409,\"uri\":\"/informes-resolucion\"}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"incidenteId\": 1,\n  \"descripcionTrabajo\": \"Intento de resolución\",\n  \"responsable\": \"Juan Pérez (plomero)\",\n  \"costo\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "4c) Rechazo: la resolución no puede hacerse cambiando el estado directamente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 409\", function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes/1/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes",
+                "1",
+                "estado"
+              ]
+            },
+            "description": "HTTP esperado: 409 Conflict\nResultado esperado: {\"message\":\"La resolución de un incidente se realiza mediante un informe de resolución\",\"status_code\":409,\"uri\":\"/incidentes/1/estado\"}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"RESUELTO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "5) REABRIR EL INCIDENTE",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes/1/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes",
+                "1",
+                "estado"
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado: incidente 1 con estado REABIERTO. El informe 1 se conserva.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"REABIERTO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "6) VOLVER A INICIAR LA ATENCIÓN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes/1/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes",
+                "1",
+                "estado"
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado: incidente 1 con estado EN_PROCESO.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"EN_PROCESO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "7) RESOLVER NUEVAMENTE",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/informes-resolucion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "informes-resolucion"
+              ]
+            },
+            "description": "HTTP esperado: 201 Created\nResultado esperado: informe id=2 del incidente 1. El incidente vuelve a RESUELTO.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"incidenteId\": 1,\n  \"descripcionTrabajo\": \"Reemplazo completo de la canilla\",\n  \"responsable\": \"Juan Pérez (plomero)\",\n  \"costo\": 42000,\n  \"observaciones\": \"Se cambió la grifería\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "8) COMPROBAR LA CONSERVACIÓN DE AMBOS INFORMES (enlace \"informes\" del incidente)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/informes-resolucion?incidenteId=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "informes-resolucion"
+              ],
+              "query": [
+                {
+                  "key": "incidenteId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado: dos informes del incidente 1:\n  id=1 \"Cambio del cuerito de la canilla\", costo 15000.00\n  id=2 \"Reemplazo completo de la canilla\", costo 42000.00"
+          }
+        },
+        {
+          "name": "9) COMPROBAR EL HISTORIAL COMPLETO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes/1/historial",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes",
+                "1",
+                "historial"
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado: seis transiciones ordenadas cronológicamente:\n  1. null       -> ABIERTO\n  2. ABIERTO    -> EN_PROCESO\n  3. EN_PROCESO -> RESUELTO   (misma fecha y hora que el informe 1)\n  4. RESUELTO   -> REABIERTO\n  5. REABIERTO  -> EN_PROCESO\n  6. EN_PROCESO -> RESUELTO   (misma fecha y hora que el informe 2)\nLos intentos rechazados de los pasos 2, 4b y 4c no agregaron entradas al historial ni informes."
+          }
+        },
+        {
+          "name": "10) ESTADO FINAL DEL INCIDENTE",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/incidentes/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidentes",
+                "1"
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado: incidente 1 con estado RESUELTO."
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Recorrido de facturación y pago",
+      "description": "Antes de correr, vaciar facturas y pagos en MySQL:\nSET FOREIGN_KEY_CHECKS=0; TRUNCATE pago; TRUNCATE factura; SET FOREIGN_KEY_CHECKS=1;\n\nCasos generados desde scripts/recorrido_facturacion_pago.txt",
+      "item": [
+        {
+          "name": "Login (obtiene el token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "    pm.collectionVariables.set(\"token\", pm.response.json().token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "login"
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado: {\"token\": \"eyJ...\", \"tipo\": \"Bearer\"}. Reemplazar `<TOKEN>` en todos los pasos siguientes por ese valor.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"pass\": \"admin123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "1) EMITIR LA FACTURA",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/facturas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "facturas"
+              ]
+            },
+            "description": "HTTP esperado: 201 Created\nResultado esperado: factura id=1, tipo ADICIONAL, importe 45000, estado PENDIENTE, fechaVencimiento 2027-06-10.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contratoId\": 1,\n  \"periodo\": \"2027-06\",\n  \"concepto\": \"Reparación de puerta por mal uso\",\n  \"importe\": 45000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "2) REGISTRAR EL PAGO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pagos"
+              ]
+            },
+            "description": "HTTP esperado: 201 Created\nResultado esperado: pago id=1, facturaId=1, fechaPago = fecha de ejecución, medioPago TRANSFERENCIA, importePagado 45000.00 e interes 0.00. La factura 1 pasa a estado PAGADA.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"facturaId\": 1,\n  \"medioPago\": \"TRANSFERENCIA\",\n  \"importePagado\": 45000.0,\n  \"interes\": 0.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "3) CONSULTAR LA FACTURA PAGADA",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/facturas/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "facturas",
+                "1"
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado: datos de la factura 1 con los enlaces HATEOAS\n  \"self\":     http://localhost:8081/facturas/1\n  \"contrato\": http://localhost:8081/contratos/1\n  \"pago\":     http://localhost:8081/pagos/1"
+          }
+        },
+        {
+          "name": "4) ACCEDER AL PAGO MEDIANTE HATEOAS",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pagos/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pagos",
+                "1"
+              ]
+            },
+            "description": "HTTP esperado: 200 OK\nResultado esperado: datos del pago con los enlaces HATEOAS\n{\n    \"_links\": {\n        \"self\": {\n            \"href\": \"http://localhost:8081/pagos/1\"\n        },\n        \"factura\": {\n            \"href\": \"http://localhost:8081/facturas/1\"\n        }\n    },\n    \"id\": 1,\n    \"facturaId\": 1,\n    \"fechaPago\": \"<fecha de ejecución>\",\n    \"medioPago\": \"TRANSFERENCIA\",\n    \"importePagado\": 45000.00,\n    \"interes\": 0.00\n}"
+          }
+        },
+        {
+          "name": "5) COMPROBAR QUE UN SEGUNDO PAGO SEA RECHAZADO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP esperado 409\", function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pagos"
+              ]
+            },
+            "description": "HTTP esperado: 409 Conflict\nResultado esperado: No permite realizar el pago.\n{\n    \"message\": \"La factura no se encuentra en un estado que permita realizar el pago.\",\n    \"status_code\": 409,\n    \"uri\": \"/pagos\"\n}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"facturaId\": 1,\n  \"fechaPago\": \"2025-01-01\",\n  \"medioPago\": \"TRANSFERENCIA\",\n  \"importePagado\": 280000.0,\n  \"interes\": 0.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

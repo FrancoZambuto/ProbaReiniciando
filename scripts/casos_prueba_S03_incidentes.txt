@@ -668,7 +668,7 @@ curl --location 'http://localhost:8081/incidentes' --header 'Authorization: Bear
 }
 '
 
-HTTP esperado: 409 Conflict
+HTTP esperado: 404 Not Found
 Resultado esperado:
 {
   "message": "No existe el contrato con id=4",

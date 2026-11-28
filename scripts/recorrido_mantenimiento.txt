@@ -28,10 +28,10 @@ Resultado esperado: incidente id=1, estado ABIERTO, enlaces self, contrato e inf
 ----------------------------------------------------------------------------------------------------
 2) RECHAZO: RESOLVER UN INCIDENTE QUE NO ESTÁ EN PROCESO
 ----------------------------------------------------------------------------------------------------
-curl --location --request POST 'http://localhost:8081/incidentes/1/resolucion' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"descripcionTrabajo": "Intento de resolución", "responsable": "Juan Pérez (plomero)", "costo": 0}'
+curl --location --request POST 'http://localhost:8081/informes-resolucion' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"incidenteId": 1, "descripcionTrabajo": "Intento de resolución", "responsable": "Juan Pérez (plomero)", "costo": 0}'
 
 HTTP esperado: 409 Conflict
-Resultado esperado: {"message":"El incidente debe estar EN_PROCESO","status_code":409,"uri":"/incidentes/1/resolucion"}
+Resultado esperado: {"message":"El incidente debe estar EN_PROCESO","status_code":409,"uri":"/informes-resolucion"}
 
 2b) Comprobar que el rechazo no dejó registros parciales
 curl --location --request GET 'http://localhost:8081/informes-resolucion?incidenteId=1' --header 'Authorization: Bearer <TOKEN>'
@@ -50,16 +50,16 @@ Resultado esperado: incidente 1 con estado EN_PROCESO.
 ----------------------------------------------------------------------------------------------------
 4) RESOLVER CON UN INFORME
 ----------------------------------------------------------------------------------------------------
-curl --location --request POST 'http://localhost:8081/incidentes/1/resolucion' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"descripcionTrabajo": "Cambio del cuerito de la canilla", "responsable": "Juan Pérez (plomero)", "costo": 15000, "observaciones": "Sin daños adicionales"}'
+curl --location --request POST 'http://localhost:8081/informes-resolucion' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"incidenteId": 1, "descripcionTrabajo": "Cambio del cuerito de la canilla", "responsable": "Juan Pérez (plomero)", "costo": 15000, "observaciones": "Sin daños adicionales"}'
 
 HTTP esperado: 201 Created
 Resultado esperado: informe id=1 del incidente 1, con enlaces self e incidente. El incidente pasa a RESUELTO.
 
 4b) Rechazo: intentar un segundo informe mientras el incidente permanece resuelto
-curl --location --request POST 'http://localhost:8081/incidentes/1/resolucion' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"descripcionTrabajo": "Intento de resolución", "responsable": "Juan Pérez (plomero)", "costo": 0}'
+curl --location --request POST 'http://localhost:8081/informes-resolucion' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"incidenteId": 1, "descripcionTrabajo": "Intento de resolución", "responsable": "Juan Pérez (plomero)", "costo": 0}'
 
 HTTP esperado: 409 Conflict
-Resultado esperado: {"message":"El incidente debe estar EN_PROCESO","status_code":409,"uri":"/incidentes/1/resolucion"}
+Resultado esperado: {"message":"El incidente debe estar EN_PROCESO","status_code":409,"uri":"/informes-resolucion"}
 
 4c) Rechazo: la resolución no puede hacerse cambiando el estado directamente
 curl --location --request PATCH 'http://localhost:8081/incidentes/1/estado' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"estado": "RESUELTO"}'
@@ -86,7 +86,7 @@ Resultado esperado: incidente 1 con estado EN_PROCESO.
 ----------------------------------------------------------------------------------------------------
 7) RESOLVER NUEVAMENTE
 ----------------------------------------------------------------------------------------------------
-curl --location --request POST 'http://localhost:8081/incidentes/1/resolucion' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"descripcionTrabajo": "Reemplazo completo de la canilla", "responsable": "Juan Pérez (plomero)", "costo": 42000, "observaciones": "Se cambió la grifería"}'
+curl --location --request POST 'http://localhost:8081/informes-resolucion' --header 'Authorization: Bearer <TOKEN>' --header 'Content-Type: application/json' --data-raw '{"incidenteId": 1, "descripcionTrabajo": "Reemplazo completo de la canilla", "responsable": "Juan Pérez (plomero)", "costo": 42000, "observaciones": "Se cambió la grifería"}'
 
 HTTP esperado: 201 Created
 Resultado esperado: informe id=2 del incidente 1. El incidente vuelve a RESUELTO.

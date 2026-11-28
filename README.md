@@ -103,7 +103,7 @@ Sin token (o con uno inválido o vencido) la API responde `401 Unauthorized`.
 | S01 Facturas de alquiler | `POST /facturas`, `GET /facturas/{id}`, `GET /facturas`, `PATCH /facturas/{id}/estado` |
 | S02 Pagos | `POST /pagos`, `GET /pagos/{id}`, `GET /pagos` |
 | S03 Incidentes | `POST /incidentes`, `GET /incidentes/{id}`, `GET /incidentes`, `PATCH /incidentes/{id}/estado`, `GET /incidentes/{id}/historial` |
-| S04 Informes de resolución | `POST /incidentes/{id}/resolucion`, `GET /informes-resolucion/{id}`, `GET /informes-resolucion` |
+| S04 Informes de resolución | `POST /informes-resolucion`, `GET /informes-resolucion/{id}`, `GET /informes-resolucion` |
 | Consulta auxiliar | `GET /contratos/{id}` |
 
 Los errores se devuelven con el formato `{ "message": ..., "status_code": ..., "uri": ... }`

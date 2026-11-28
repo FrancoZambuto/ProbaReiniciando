@@ -1,4 +1,4 @@
---Caso para prueba S01
+-- Caso para prueba S01
 INSERT INTO persona (id, nombre, apellido, dni_cuit, telefono, email, eliminada) VALUES
 (1, 'Carlos', 'Gómez', '20-22333444-5', '3424111111', 'cgomez@mail.com', 0),
 (2, 'Laura', 'Fernández', '27-30111222-3', '3424222222', 'lfernandez@mail.com', 0),
@@ -20,7 +20,7 @@ INSERT INTO contrato (id, propiedad_id, propietario_id, inquilino_id, fecha_inic
 INSERT INTO usuario (id, username, password, rol) VALUES
 (1, 'admin', 'admin123', 'ADMIN');
 
---IMPORTANTE: Ejecutar despues de las pruebas para el caso S01
---Caso para prueba S02
+-- IMPORTANTE: Ejecutar despues de las pruebas para el caso S01
+-- Caso para prueba S02
 INSERT INTO factura (concepto, estado, fecha_emision, fecha_vencimiento, importe, periodo, tipo, contrato_id) VALUES
 (NULL, 'PENDIENTE', '2026-11-15', '2026-12-10', 10000, '2026-12', 'ADICIONAL', 1);
